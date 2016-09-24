@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>GeorgeWang Blog</title>
+    <description>iOS、创作与设计 | 王颖，iOS Engineer | 这里是王颖的个人博客，我们在这里分享技术，分享见闻，分享人生</description>
+    <link>http://blog.oneinbest.com/</link>
+    <atom:link href="http://blog.oneinbest.com/feed.xml" rel="self" type="application/rss+xml" />
+    <pubDate>Sat, 24 Sep 2016 21:49:59 +0800</pubDate>
+    <lastBuildDate>Sat, 24 Sep 2016 21:49:59 +0800</lastBuildDate>
+    <generator>Jekyll v3.2.1</generator>
+    
+      <item>
+        <title>Hello World</title>
+        <description>&lt;p&gt;Hello World&lt;/p&gt;
+</description>
+        <pubDate>Thu, 22 Sep 2016 07:39:00 +0800</pubDate>
+        <link>http://blog.oneinbest.com/2016/09/22/HelloWorld/</link>
+        <guid isPermaLink="true">http://blog.oneinbest.com/2016/09/22/HelloWorld/</guid>
+        
+        <category>第一篇文章</category>
+        
+        <category>iOS</category>
+        
+        
+      </item>
+    
+  </channel>
+</rss>
