@@ -5,21 +5,135 @@
     <description>iOS、创作与设计 | 王颖，iOS Engineer | 这里是王颖的个人博客，我们在这里分享技术，分享见闻，分享人生</description>
     <link>http://blog.oneinbest.com/</link>
     <atom:link href="http://blog.oneinbest.com/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Sat, 24 Sep 2016 21:49:59 +0800</pubDate>
-    <lastBuildDate>Sat, 24 Sep 2016 21:49:59 +0800</lastBuildDate>
+    <pubDate>Mon, 26 Sep 2016 10:59:02 +0800</pubDate>
+    <lastBuildDate>Mon, 26 Sep 2016 10:59:02 +0800</lastBuildDate>
     <generator>Jekyll v3.2.1</generator>
     
       <item>
-        <title>Hello World</title>
-        <description>&lt;p&gt;Hello World&lt;/p&gt;
+        <title>关于我的博客说明</title>
+        <description>&lt;p&gt;这是我的新博客，基于gitpage和jekyll搭建。&lt;/p&gt;
+
+&lt;p&gt;你可能会看到有些文章比我博客项目时间还早，这是因为很多文章是从以前的&lt;a href=&quot;&amp;quot;www.oneinbset.com&amp;quot;&quot;&gt;博客&lt;/a&gt;迁过来的，是以前写的，不舍得放弃，所以迁过来了。&lt;/p&gt;
+
+&lt;p&gt;我比较喜欢折腾，从一开始在csdn写博客，发现不尽我意，又自己买了一个主机和域名，使用wp搭建一个博客，现在由于wp比较笨重，加上所购买的主机空间有限，果断抛弃之，使用更加轻量级的jekyll和空间无限的gitpage。&lt;/p&gt;
+
+&lt;p&gt;最后，欢迎来到我的博客，我会尽我所能，把我觉得有意义有价值的事情记录下来，您的支持是我的动力，谢谢！🍻🍻&lt;/p&gt;
 </description>
         <pubDate>Thu, 22 Sep 2016 07:39:00 +0800</pubDate>
-        <link>http://blog.oneinbest.com/2016/09/22/HelloWorld/</link>
-        <guid isPermaLink="true">http://blog.oneinbest.com/2016/09/22/HelloWorld/</guid>
+        <link>http://blog.oneinbest.com/2016/09/22/%E5%85%B3%E4%BA%8E%E6%88%91%E7%9A%84%E5%8D%9A%E5%AE%A2%E8%AF%B4%E6%98%8E/</link>
+        <guid isPermaLink="true">http://blog.oneinbest.com/2016/09/22/%E5%85%B3%E4%BA%8E%E6%88%91%E7%9A%84%E5%8D%9A%E5%AE%A2%E8%AF%B4%E6%98%8E/</guid>
         
-        <category>第一篇文章</category>
+        <category>博客说明</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>iOS中的KVO机制剖析</title>
+        <description>&lt;p&gt;KVO即 key value observing键值对观察，是objc中的一种机制。
+KVO以KVC(key value coding)为基础，通过向对象的某个键值添加观察者，当对象键所对应的值发生变化时，通知观察者，执行相关的回调方法。&lt;/p&gt;
+
+&lt;p&gt;以下描述分为KVO的使用，OBJC实现KVO机制的剖析，KVO的DIY，fb的KVO开源库介绍，四部分。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Tips:&lt;/strong&gt;&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	KVO的操作回调是在同一个线程中进行的，和NOTIFICATION一样
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h2 id=&quot;kvo&quot;&gt;1. KVO的使用&lt;/h2&gt;
+&lt;p&gt;objc中给对象键值添加观察者，通过：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;[obj addObserver:forKeyPath:option:context:]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;回调函数： &lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;observeValueForKeyPath:ofObject:change:context:
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;移除通知：(这是一定要的，不然会导致crash)&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;removeObserver:forKeyPath:
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&quot;objckvo&quot;&gt;2. OBJC实现KVO机制的剖析&lt;/h2&gt;
+&lt;p&gt;先贴上几个解析来源：&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;1.&lt;a href=&quot;&amp;quot;https://github.com/ChenYilong/iOSInterviewQuestions&amp;quot;&quot;&gt;《招聘一个靠谱的iOS》面试题&lt;/a&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;2.&lt;a href=&quot;&amp;quot;https://www.mikeash.com/pyblog/friday-qa-2009-01-23.html&amp;quot;&quot;&gt;https://www.mikeash.com/pyblog/friday-qa-2009-01-23.html&lt;/a&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;objc通过什么来实现对键值添加观察者并发送通知呢？&lt;/p&gt;
+
+&lt;p&gt;objc基于runtime,以setter方法为入口，实现这一机制。
+首先需要知道的是，objc的对象实例isa指针，内存布局，Class结构体表示类。&lt;/p&gt;
+
+&lt;p&gt;当向对象添加键值观察者时，objc通过runtime动态生成对象所属的类的子类，重写setter，并将对象的isa指针指向新类，在此过程中还重写了子类的class方法，向开发者隐藏新建子类 (也就是所谓的isa混写(isa-swizzling))。&lt;/p&gt;
+
+&lt;p&gt;在新的类的setter中，执行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;[super setObject:]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;并在前后执行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;[self willChangeValueForKey:]与[self didChangeValueForKey:]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;并在后者执行时调用观察者的回调函数，所以在观察者dealloc时必须注销所设置的观察，否则会发送消息给dealloc对象，造成crash。&lt;/p&gt;
+
+&lt;p&gt;##3. KVO的DIY
+照例贴上手动实现KVO的方法链接：&lt;a href=&quot;&amp;quot;http://tech.glowing.com/cn/implement-kvo/&amp;quot;&quot;&gt;http://tech.glowing.com/cn/implement-kvo/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;通过上面的剖析，我们知道了KVO的实现原理&lt;/p&gt;
+
+&lt;p&gt;如果要手动实现，那有两个过程必须实现&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;1.添加观察者接口及过程
+2.键值改变时的通知过程实现
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;strong&gt;1.添加观察者接口及过程&lt;/strong&gt;&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;1.1 检查对象的类有没有相应setter方法，如果没有抛出异常；
+	检查对象 isa 指向的类是不是一个有kPGKVOClassPrefix前缀的KVO类，如果不是需要创建新子类，并把isa指针指向新类，实现class方法
+
+1.2 检查有没有KVO的setter方法，没有的话构建新类的setter方法
+
+1.3 把观察者添加到观察者列表，使用***关联对象(objc_setAssociationObj)*** 绑定列表
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;2.键值改变时的通知过程实现&lt;/strong&gt;&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2.1 通过runtime动态执行父类也就是原来的类的setter方法
+
+2.2 取出有关keyPath的观察者，并逐一调用回调函数block
+  ##4.KVOController
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;👉 &lt;a ref=&quot;&quot;&gt;FaceBook的KVOController链接&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;KVOController是Facebook开源的一个KVO库，其可以聚合KVO操作，使用block执行观察操作，好处是可以不用自己去remove观察者，防止因为忘记remove造成crash，以下是其用法：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;
+// create KVO controller with observer
+FBKVOController *KVOController = [FBKVOController controllerWithObserver:self];
+self.KVOController = KVOController;
+
+// observe clock date property
+[self.KVOController observe:clock keyPath:@&quot;date&quot; options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew block:^(ClockView *clockView, Clock *clock, NSDictionary *change) {
+
+  // update clock view with new value
+  clockView.date = change[NSKeyValueChangeNewKey];
+}];
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&quot;section&quot;&gt;总结&lt;/h2&gt;
+
+&lt;p&gt;&lt;strong&gt;KVO&lt;/strong&gt; 是objc一项重要的特性和设计模式，也是GOF观察者模式的实现。开发中经常用于观察数据层(data)变化而对视图层(view)作出相应的改变，也是一种响应方式。由于其需要手动移动观察，否则会导致crash，所以使用时需要小心。Facebook的KVOController对objc的KVO进行封装，使用block模式，让开发者更省心。KVO在objc的底层实现是isa混编，生成子类并重写setter，然后通知观察中。手动实现KVO需要对类做是否KVO子类的判断，从而决定是否生成子类。总而言之，KVO是objc中一个比较重要的语言特性，使用好它，能为你带来不小的好处。&lt;/p&gt;
+</description>
+        <pubDate>Wed, 23 Dec 2015 07:39:00 +0800</pubDate>
+        <link>http://blog.oneinbest.com/2015/12/23/iOS%E4%B8%AD%E7%9A%84KVO%E6%9C%BA%E5%88%B6/</link>
+        <guid isPermaLink="true">http://blog.oneinbest.com/2015/12/23/iOS%E4%B8%AD%E7%9A%84KVO%E6%9C%BA%E5%88%B6/</guid>
         
         <category>iOS</category>
+        
+        <category>KVO</category>
         
         
       </item>

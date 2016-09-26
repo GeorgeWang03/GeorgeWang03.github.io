@@ -10,9 +10,9 @@
     <meta name="keywords"  content="王颖, @georgewang, 王颖的博客, GeorgeWang Blog, 博客, 个人网站, 互联网, iOS, 读书, 旅行">
     <link rel="shortcut icon" href="/img/seoIcon.ico">
 
-    <title>王颖的博客 | GeorgeWang Blog</title>
+    <title>iOS中的KVO机制剖析 - 王颖的博客 | GeorgeWang Blog</title>
 
-    <link rel="canonical" href="http://blog.oneinbest.com/">
+    <link rel="canonical" href="http://blog.oneinbest.com/2015/12/23/iOS%E4%B8%AD%E7%9A%84KVO%E6%9C%BA%E5%88%B6/">
 
     <!-- Bootstrap Core CSS -->
     <link rel="stylesheet" href="/css/bootstrap.min.css">
@@ -77,10 +77,10 @@
                         <a href="/about/">About</a>
                     </li>
                     
-<!--                     <li>
+                    <li>
                         <a href="/portfolio/">Portfolio</a>
                     </li>
- -->                    
+                    
                     <li>
                         <a href="/tags/">Tags</a>
                     </li>
@@ -146,141 +146,265 @@
 </script>
 
 
-    <!-- Page Header -->
-<header class="intro-header" style="background-image: url('/img/home-bg.jpg')">
+    <!-- Image to hack wechat -->
+<!-- <img src="/img/icon_wechat.png" width="0" height="0"> -->
+<!-- <img src="/img/post-bg-miui6.jpg" width="0" height="0"> -->
+
+<!-- Post Header -->
+<style type="text/css">
+    header.intro-header{
+        position: relative;
+        background-image: url('/img/post-bg-miui6.jpg')
+    }
+
+    
+</style>
+<header class="intro-header" >
+    <div class="header-mask"></div>
     <div class="container">
         <div class="row">
-            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 ">
-                <div class="site-heading">
-                    <h1>GeorgeWang Blog</h1>
-                    <!--<hr class="small">-->
-                    <span class="subheading">行千里路，读万卷书</span>
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                        <a class="tag" href="/tags/#iOS" title="iOS">iOS</a>
+                        
+                        <a class="tag" href="/tags/#KVO" title="KVO">KVO</a>
+                        
+                    </div>
+                    <h1>iOS中的KVO机制剖析</h1>
+                    
+                    
+                    <h2 class="subheading"></h2>
+                    
+                    <span class="meta">Posted by GeorgeWang on December 23, 2015</span>
                 </div>
             </div>
         </div>
     </div>
 </header>
 
-<!-- Main Content -->
-<div class="container">
-	<div class="row">
-        
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
 
-<!-- USE SIDEBAR -->
-    <!-- PostList Container -->
-    		<div class="
-                col-lg-8 col-lg-offset-1
-                col-md-8 col-md-offset-1
-                col-sm-12
-                col-xs-12
-                postlist-container
-            ">
-    			
-<div class="post-preview">
-    <a href="/2016/09/22/%E5%85%B3%E4%BA%8E%E6%88%91%E7%9A%84%E5%8D%9A%E5%AE%A2%E8%AF%B4%E6%98%8E/">
-        <h2 class="post-title">
-            关于我的博客说明
-        </h2>
-        
-        <div class="post-content-preview">
-            这是我的新博客，基于gitpage和jekyll搭建。
+    <!-- Post Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
 
-你可能会看到有些文章比我博客项目时间还早，这是因为很多文章是从以前的博客迁过来的，是以前写的，不舍得放弃，所以迁过来了。
+				<p>KVO即 key value observing键值对观察，是objc中的一种机制。
+KVO以KVC(key value coding)为基础，通过向对象的某个键值添加观察者，当对象键所对应的值发生变化时，通知观察者，执行相关的回调方法。</p>
 
-我比较喜欢折腾，从一开始在csdn写博客，发现不尽我意，又自己买了一个主机和域名，使用wp搭建一个博客，现在由于wp比较笨重，加上所购买的主机空间有限，果断抛弃之，使用更加轻量级的jekyll和空间无限的gitp...
-        </div>
-    </a>
-    <p class="post-meta">
-        Posted by GeorgeWang on September 22, 2016
-    </p>
+<p>以下描述分为KVO的使用，OBJC实现KVO机制的剖析，KVO的DIY，fb的KVO开源库介绍，四部分。</p>
+
+<p><strong>Tips:</strong></p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>	KVO的操作回调是在同一个线程中进行的，和NOTIFICATION一样
+</code></pre>
 </div>
-<hr>
 
-<div class="post-preview">
-    <a href="/2015/12/23/iOS%E4%B8%AD%E7%9A%84KVO%E6%9C%BA%E5%88%B6/">
-        <h2 class="post-title">
-            iOS中的KVO机制剖析
-        </h2>
-        
-        <div class="post-content-preview">
-            KVO即 key value observing键值对观察，是objc中的一种机制。
-KVO以KVC(key value coding)为基础，通过向对象的某个键值添加观察者，当对象键所对应的值发生变化时，通知观察者，执行相关的回调方法。
+<h2 id="kvo">1. KVO的使用</h2>
+<p>objc中给对象键值添加观察者，通过：</p>
+<pre><code>[obj addObserver:forKeyPath:option:context:]
+</code></pre>
 
-以下描述分为KVO的使用，OBJC实现KVO机制的剖析，KVO的DIY，fb的KVO开源库介绍，四部分。
+<p>回调函数： </p>
+<pre><code>observeValueForKeyPath:ofObject:change:context:
+</code></pre>
 
-Tips:
+<p>移除通知：(这是一定要的，不然会导致crash)</p>
 
-	KVO的操作回调是在同一个线...
-        </div>
-    </a>
-    <p class="post-meta">
-        Posted by GeorgeWang on December 23, 2015
-    </p>
+<pre><code>removeObserver:forKeyPath:
+</code></pre>
+
+<h2 id="objckvo">2. OBJC实现KVO机制的剖析</h2>
+<p>先贴上几个解析来源：</p>
+
+<p><strong>1.<a href="&quot;https://github.com/ChenYilong/iOSInterviewQuestions&quot;">《招聘一个靠谱的iOS》面试题</a></strong></p>
+
+<p><strong>2.<a href="&quot;https://www.mikeash.com/pyblog/friday-qa-2009-01-23.html&quot;">https://www.mikeash.com/pyblog/friday-qa-2009-01-23.html</a></strong></p>
+
+<p>objc通过什么来实现对键值添加观察者并发送通知呢？</p>
+
+<p>objc基于runtime,以setter方法为入口，实现这一机制。
+首先需要知道的是，objc的对象实例isa指针，内存布局，Class结构体表示类。</p>
+
+<p>当向对象添加键值观察者时，objc通过runtime动态生成对象所属的类的子类，重写setter，并将对象的isa指针指向新类，在此过程中还重写了子类的class方法，向开发者隐藏新建子类 (也就是所谓的isa混写(isa-swizzling))。</p>
+
+<p>在新的类的setter中，执行：</p>
+<pre><code>[super setObject:]
+</code></pre>
+<p>并在前后执行：</p>
+<pre><code>[self willChangeValueForKey:]与[self didChangeValueForKey:]
+</code></pre>
+<p>并在后者执行时调用观察者的回调函数，所以在观察者dealloc时必须注销所设置的观察，否则会发送消息给dealloc对象，造成crash。</p>
+
+<p>##3. KVO的DIY
+照例贴上手动实现KVO的方法链接：<a href="&quot;http://tech.glowing.com/cn/implement-kvo/&quot;">http://tech.glowing.com/cn/implement-kvo/</a></p>
+
+<p>通过上面的剖析，我们知道了KVO的实现原理</p>
+
+<p>如果要手动实现，那有两个过程必须实现</p>
+<pre><code>1.添加观察者接口及过程
+2.键值改变时的通知过程实现
+</code></pre>
+
+<p><strong>1.添加观察者接口及过程</strong></p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>1.1 检查对象的类有没有相应setter方法，如果没有抛出异常；
+	检查对象 isa 指向的类是不是一个有kPGKVOClassPrefix前缀的KVO类，如果不是需要创建新子类，并把isa指针指向新类，实现class方法
+
+1.2 检查有没有KVO的setter方法，没有的话构建新类的setter方法
+
+1.3 把观察者添加到观察者列表，使用***关联对象(objc_setAssociationObj)*** 绑定列表
+</code></pre>
 </div>
-<hr>
+
+<p><strong>2.键值改变时的通知过程实现</strong></p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>2.1 通过runtime动态执行父类也就是原来的类的setter方法
+
+2.2 取出有关keyPath的观察者，并逐一调用回调函数block
+  ##4.KVOController
+</code></pre>
+</div>
+
+<p>👉 <a ref="">FaceBook的KVOController链接</a></p>
+
+<p>KVOController是Facebook开源的一个KVO库，其可以聚合KVO操作，使用block执行观察操作，好处是可以不用自己去remove观察者，防止因为忘记remove造成crash，以下是其用法：</p>
+<pre><code>
+// create KVO controller with observer
+FBKVOController *KVOController = [FBKVOController controllerWithObserver:self];
+self.KVOController = KVOController;
+
+// observe clock date property
+[self.KVOController observe:clock keyPath:@"date" options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew block:^(ClockView *clockView, Clock *clock, NSDictionary *change) {
+
+  // update clock view with new value
+  clockView.date = change[NSKeyValueChangeNewKey];
+}];
+</code></pre>
+
+<h2 id="section">总结</h2>
+
+<p><strong>KVO</strong> 是objc一项重要的特性和设计模式，也是GOF观察者模式的实现。开发中经常用于观察数据层(data)变化而对视图层(view)作出相应的改变，也是一种响应方式。由于其需要手动移动观察，否则会导致crash，所以使用时需要小心。Facebook的KVOController对objc的KVO进行封装，使用block模式，让开发者更省心。KVO在objc的底层实现是isa混编，生成子类并重写setter，然后通知观察中。手动实现KVO需要对类做是否KVO子类的判断，从而决定是否生成子类。总而言之，KVO是objc中一个比较重要的语言特性，使用好它，能为你带来不小的好处。</p>
 
 
-<!-- Pager -->
+                <hr>
+
+                
 
 
-    		</div>
+                <ul class="pager">
+                    
+                    
+                    <li class="next">
+                        <a href="/2016/09/22/%E5%85%B3%E4%BA%8E%E6%88%91%E7%9A%84%E5%8D%9A%E5%AE%A2%E8%AF%B4%E6%98%8E/" data-toggle="tooltip" data-placement="top" title="关于我的博客说明">
+                        Next<br>
+                        <span>关于我的博客说明</span>
+                        </a>
+                    </li>
+                    
+                </ul>
+
+
+                
+                <!-- 多说评论框 start -->
+                <div class="comment">
+                    <div class="ds-thread"
+                        data-thread-key="/2015/12/23/iOS中的KVO机制"
+                        data-title="iOS中的KVO机制剖析"
+                        data-url="http://blog.oneinbest.com/2015/12/23/iOS%E4%B8%AD%E7%9A%84KVO%E6%9C%BA%E5%88%B6/" >
+                    </div>
+                </div>
+                <!-- 多说评论框 end -->
+                
+
+                
+
+            </div>  
+
+    <!-- Side Catalog Container -->
+        
+
     <!-- Sidebar Container -->
             <div class="
-                col-lg-3 col-lg-offset-0
-                col-md-3 col-md-offset-0
-                col-sm-12
-                col-xs-12
-                sidebar-container
-            ">
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
                 <!-- Featured Tags -->
                 
 
-                <!-- Short About -->
-                <section class="visible-md visible-lg">
-                    <hr><h5><a href="/about/">ABOUT ME</a></h5>
-                    <div class="short-about">
-                        
-                            <img src="/img/mini-about-header.jpg" />
-                        
-                        
-                            <p>代码 读书 旅行 创作</p>
-                        
-                        <!-- SNS Link -->
-                        <ul class="list-inline">
-                            
-                            
-                            
-                            
-                            <li>
-                                <a target="_blank" href="http://weibo.com/_王颖_">
-                                    <span class="fa-stack fa-lg">
-                                        <i class="fa fa-circle fa-stack-2x"></i>
-                                        <i class="fa fa-weibo fa-stack-1x fa-inverse"></i>
-                                    </span>
-                                </a>
-                            </li>
-                            
-                            
-                            
-                            <li>
-                                <a target="_blank" href="https://github.com/GeorgeWang03">
-                                    <span class="fa-stack fa-lg">
-                                        <i class="fa fa-circle fa-stack-2x"></i>
-                                        <i class="fa fa-github fa-stack-1x fa-inverse"></i>
-                                    </span>
-                                </a>
-                            </li>
-                            
-                            
-                        </ul>
-                    </div>
-                </section>
                 <!-- Friends Blog -->
                 
-    		</div>
-        
-	</div>
-</div>
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+<script type="text/javascript">
+    // dynamic User by Hux
+    var _user = 'GeorgeWangblog';
+
+    // duoshuo comment query.
+    var duoshuoQuery = {short_name: _user };
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0]
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!-- 多说公共JS代码 end -->
+
+
+
+
+
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+<!-- anchor-js, Doc:http://bryanbraun.github.io/anchorjs/ -->
+<script>
+    async("//cdnjs.cloudflare.com/ajax/libs/anchor-js/1.1.1/anchor.min.js",function(){
+        anchors.options = {
+          visible: 'always',
+          placement: 'right',
+          icon: '#'
+        };
+        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
+    })
+</script>
+<style>
+    /* place left on bigger screen */
+    @media all and (min-width: 800px) {
+        .anchorjs-link{
+            position: absolute;
+            left: -0.75em;
+            font-size: 1.1em;
+            margin-top : -0.1em;
+        }
+    }
+</style>
 
 
     <!-- Footer -->
