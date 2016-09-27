@@ -5,9 +5,120 @@
     <description>iOS、创作与设计 | 王颖，iOS Engineer | 这里是王颖的个人博客，我们在这里分享技术，分享见闻，分享人生</description>
     <link>http://blog.oneinbest.com/</link>
     <atom:link href="http://blog.oneinbest.com/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Mon, 26 Sep 2016 14:13:44 +0800</pubDate>
-    <lastBuildDate>Mon, 26 Sep 2016 14:13:44 +0800</lastBuildDate>
+    <pubDate>Tue, 27 Sep 2016 09:30:28 +0800</pubDate>
+    <lastBuildDate>Tue, 27 Sep 2016 09:30:28 +0800</lastBuildDate>
     <generator>Jekyll v3.2.1</generator>
+    
+      <item>
+        <title>Github 的 ssh 秘钥配置 以及登录问题</title>
+        <description>&lt;p&gt;最近在github上部署项目的时候遇到一个问题，将项目拷贝下来之后，修改完再度push上去，却收到 &lt;strong&gt;Permission to user/repo denied to other-user&lt;/strong&gt; 的错误，在github help搜索之后，其给出的答案如下&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	This error means the key you are pushing with is attached to an account which does not have access to the repository.
+	To fix this, the owner of the repository (user) needs to add your account (other-user) as a collaborator on the repository or to a team that has write access to the repository.  大概意思就是所给出的秘钥无权利访问这个项目。需要让项目所有者将other-user加入到项目组。
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;先说下最终的解决办法，其实就是以前登录过的账户保留在系统的钥匙串中，所以当前的用户是other-user，自然无权利访问。办法就是在系统钥匙串设置中将以前的邮箱关于github的钥匙串删除，回到终端重新push，输入账户和用户名，便可以。&lt;/p&gt;
+
+&lt;p&gt;下面是分界线
+***&lt;/p&gt;
+
+&lt;p&gt;解决这个问题的时候，更重要的是一开始的误打误撞。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;1.最开始&lt;/strong&gt; 以为是git的config问题，于是修改username,useremail等，下面是关于git config的一些设置方法&lt;/p&gt;
+
+&lt;p&gt;config文件路径(mac os下) ： ~/.gitconfig&lt;/p&gt;
+
+&lt;p&gt;config的设置分为几个等级，global，project，子级默认用上级的设置。&lt;/p&gt;
+
+&lt;p&gt;命令行的设置法&lt;/p&gt;
+
+&lt;p&gt;git config [–global] user.name yourUsername
+git config [–global] user.email yourUsername&lt;/p&gt;
+
+&lt;p&gt;在项目根目录下执行时，不加–global选项，为设置项目git配置。&lt;/p&gt;
+
+&lt;p&gt;config的作用是，设置分支开发时的作者信息，暂时了解这点，其他的后续再研究。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;2.随后&lt;/strong&gt; 在stackoverflow和githelp上搜索，说是公钥的问题，于是研究了一下ssh key的配置&lt;/p&gt;
+
+&lt;p&gt;github用rsa非对称秘钥来进行https的加密，用于客户端与github服务器进行通信时的认证，也就是常见的 git@github.com:user/rep 远程仓库通信。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;关于ssh key的部署&lt;/strong&gt;，👉 &lt;a href=&quot;&amp;quot;https://help.github.com/categories/ssh/&amp;quot;&quot;&gt;官方教程&lt;/a&gt; 
+大概的步骤是&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;1.查看系统已经存在的rsa秘钥对&lt;/strong&gt;&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	$ ls -al ~/.ssh  如果出现id_dsa与id_dsa.pub类似的私钥公钥秘钥对的话，就证明以前配置过，当然在这里是介绍怎么配置，所以继续往下看
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;2.新建秘钥对并添加到ssh代理&lt;/strong&gt;&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	$ ssh-keygen -t rsa -b 4096 -C &quot;your_email@example.com&quot;  然后设置秘钥的名字
+
+	Enter a file in which to save the key (/Users/you/.ssh/id_rsa):  一般自己命名为 **id_rsa_somename**
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;接下去的问题验证有兴趣的可以到githelp看，这里不做详解&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	Enter passphrase (empty for no passphrase): [Type a passphrase]
+	Enter same passphrase again: [Type passphrase again]  直接按enter也可以
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;3.把秘钥对添加到代理&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;首先查看代理是否可用&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	$ eval &quot;$(ssh-agent -s)&quot;  出现下面结果
+
+	Agent pid 59566(或者其它id)  证明是有用的，然后
+
+	$ ssh-add ~/.ssh/id_rsa  id_rsa应该是第2步时你秘钥的命名
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;4.把秘钥添加到你的github&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;复制秘钥信息到粘贴板&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	$ pbcopy &amp;lt; ~/.ssh/id_rsa.pub  选择github个人的 **setting-SSH and GPG keys-New SSH key or Add SSH key**
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;输入一个秘钥名字，然后command+v粘贴秘钥内容，最后点击&lt;strong&gt;Add SSH key&lt;/strong&gt;确认。&lt;/p&gt;
+
+&lt;p&gt;5.检测秘钥对是否能链接成功&lt;/p&gt;
+
+&lt;p&gt;终端输入 ：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	ssh -T git@github.com  如果出现：
+
+	Hi username! You've successfully authenticated, but GitHub does not provide shell access.  则验证成功，可以正常使用了。
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;其实如果没配置ssh key的话，提示的错误信息应该是 &lt;strong&gt;Permission to user/repo denied to (other-)user/other-repo&lt;/strong&gt; ，所以遇到这个问题时也可以借鉴一下。&lt;/p&gt;
+
+&lt;p&gt;如果有其它问题，请到githelp寻求帮助。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;以上&lt;/strong&gt; 两种就是一开始误打误撞去探究的结果，虽说没有解决问题，但是也学如何配置git的秘钥等内容。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;总而言之&lt;/strong&gt;，github的账户切换时，要注意对配置信息和钥匙串的更换，否则会出现Permission … denied to … 的错误。&lt;/p&gt;
+
+</description>
+        <pubDate>Thu, 22 Sep 2016 23:22:00 +0800</pubDate>
+        <link>http://blog.oneinbest.com/2016/09/22/Github-%E7%9A%84-ssh-%E7%A7%98%E9%92%A5%E9%85%8D%E7%BD%AE%E4%BB%A5%E5%8F%8A%E7%99%BB%E5%BD%95%E9%97%AE%E9%A2%98/</link>
+        <guid isPermaLink="true">http://blog.oneinbest.com/2016/09/22/Github-%E7%9A%84-ssh-%E7%A7%98%E9%92%A5%E9%85%8D%E7%BD%AE%E4%BB%A5%E5%8F%8A%E7%99%BB%E5%BD%95%E9%97%AE%E9%A2%98/</guid>
+        
+        <category>Git</category>
+        
+        <category>ssh</category>
+        
+        
+      </item>
     
       <item>
         <title>关于我的博客说明</title>
