@@ -10,9 +10,9 @@
     <meta name="keywords"  content="王颖, @georgewang, 王颖的博客, GeorgeWang Blog, 博客, 个人网站, 互联网, iOS, 读书, 旅行">
     <link rel="shortcut icon" href="/img/seoIcon.jpg">
 
-    <title>iOS中的KVO机制剖析 - 王颖的博客 | GeorgeWang Blog</title>
+    <title>Objective-C 内存布局与对象生成 - 王颖的博客 | GeorgeWang Blog</title>
 
-    <link rel="canonical" href="http://blog.oneinbest.com/2015/12/23/iOS%E4%B8%AD%E7%9A%84KVO%E6%9C%BA%E5%88%B6/">
+    <link rel="canonical" href="http://blog.oneinbest.com/2015/11/17/Objective-C-%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E4%B8%8E%E5%AF%B9%E8%B1%A1%E7%94%9F%E6%88%90/">
 
     <!-- Bootstrap Core CSS -->
     <link rel="stylesheet" href="/css/bootstrap.min.css">
@@ -165,15 +165,17 @@
                         
                         <a class="tag" href="/tags/#iOS" title="iOS">iOS</a>
                         
-                        <a class="tag" href="/tags/#KVO" title="KVO">KVO</a>
+                        <a class="tag" href="/tags/#Objective-C" title="Objective-C">Objective-C</a>
+                        
+                        <a class="tag" href="/tags/#内存" title="内存">内存</a>
                         
                     </div>
-                    <h1>iOS中的KVO机制剖析</h1>
+                    <h1>Objective-C 内存布局与对象生成</h1>
                     
                     
                     <h2 class="subheading"></h2>
                     
-                    <span class="meta">Posted by GeorgeWang on December 23, 2015</span>
+                    <span class="meta">Posted by GeorgeWang on November 17, 2015</span>
                 </div>
             </div>
         </div>
@@ -191,102 +193,85 @@
                 col-md-10 col-md-offset-1
                 post-container">
 
-				<p>KVO即 key value observing键值对观察，是objc中的一种机制。
-KVO以KVC(key value coding)为基础，通过向对象的某个键值添加观察者，当对象键所对应的值发生变化时，通知观察者，执行相关的回调方法。</p>
+				<p>一直以来零碎的，连续的看过一些关于OC的内存布局及对象生成方案的文章，没对这方面的知识进行一个总结是心头大患 😔😔。</p>
 
-<p>以下描述分为KVO的使用，OBJC实现KVO机制的剖析，KVO的DIY，fb的KVO开源库介绍，四部分。</p>
+<p>接下来在这篇文章中，我将会介绍这方面的相关知识，只要内容有：</p>
 
-<p><strong>Tips:</strong></p>
+<p><strong>1.Object-C的类对象内存布局</strong></p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>	KVO的操作回调是在同一个线程中进行的，和NOTIFICATION一样
+<p><strong>2.Object-C对象如何生成</strong></p>
+
+<p>废话不多说，我们开始吧！🎁🍺👇👇</p>
+
+<h2 id="object-c">一、Object-C的类对象内存布局</h2>
+<p> 	我们知道Object-C是又前端编译器clang转换为C++/C进而编译为机器码的；我们还知道Object-C中的类是单继承的；
+	对于Object-C的一个类对象实例，或许你曾听说它有一个isa指针,这个isa有什么作用呢？
+	通过下面一张图可能你会发现一些端倪 
+	<img src="/img/post_img/2015-11-17-objectivec/oc_memory_struct.jpg" alt="oc_memory_struct" />  	是的，类对象中除了isa指针还有superclass指针。
+ isa顾名思义，is a class。。。来指明这是一个什么类的对象。
+	根据上图，isa指针指向一个metaClass元类对象，这个对象是全局的，而且只有一个，metaClass存放类的静态变量和类方法，NSObject类对象的isa指向自身，而superClass指针则指向父类对象，NSObject类对象的superClass指针指向nil。</p>
+
+<p>当然，类对象和元类对象都拥有这两个指针，只是有所不同，从图中我们同样可以看到metaClass的isa指针指向的是NSObject元类对象，NSObject元类对象的isa指针则是指向自身；而其superClass则都指向父类的元类对象。</p>
+
+<p>当然，类中的信息不仅仅有isa和superClass指针，从runtime文件中我们可以找到Class的结构定义如下：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>struct objc_class {
+Class isa  OBJC_ISA_AVAILABILITY;
+#if !__OBJC2__
+Class super_class                                        OBJC2_UNAVAILABLE;
+const char *name                                         OBJC2_UNAVAILABLE;
+long version                                             OBJC2_UNAVAILABLE;
+long info                                                OBJC2_UNAVAILABLE;
+long instance_size                                       OBJC2_UNAVAILABLE;
+struct objc_ivar_list *ivars                             OBJC2_UNAVAILABLE;
+struct objc_method_list **methodLists                    OBJC2_UNAVAILABLE;
+struct objc_cache *cache                                 OBJC2_UNAVAILABLE;
+struct objc_protocol_list *protocols                     OBJC2_UNAVAILABLE;
+#endif
+} OBJC2_UNAVAILABLE;
 </code></pre>
 </div>
 
-<h2 id="kvo">1. KVO的使用</h2>
-<p>objc中给对象键值添加观察者，通过：</p>
-<pre><code>[obj addObserver:forKeyPath:option:context:]
+<p>其中包括<strong>ivars</strong>、<strong>methodLists</strong>和<strong>protocol</strong>等重要的信息。</p>
+
+<ul>
+  <li><code class="highlighter-rouge">objc_ivar_list</code>是类对象所持有的对象实例，最常见的就是平时声明<strong>@property</strong>时，用下划线表示的_someProperty变量；</li>
+  <li><code class="highlighter-rouge">objc_method_list</code>是存放所有实例方法的列表，调用实例对象的方法时，会在此列表中遍历寻找对应的函数入口；</li>
+  <li><code class="highlighter-rouge">objc_protocol_list</code>存放该类所遵循的协议；</li>
+  <li>值得注意的是，<code class="highlighter-rouge">objc_cache</code>，这是什么东西？其实这是objc对方法访问做优化的一个缓存，由于方法列表有可能很大，如果每次都在列表里面遍历，那效率自然就下降，特别是对于一些经常访问的方法，如tableView的<code class="highlighter-rouge">tableView:cellForRowsAtIndexPath:</code>，高频率的访问带来的高频率遍历会耗费很多时间，而有了cache之后，在其中访问高频方法，速度会提升不少。</li>
+  <li>
+    <p>细心的读者会主要到图中还有一个<code class="highlighter-rouge">objc_object</code>，这是一个什么东西呢？  这其实就是我们平常所声明的实例对象，其通过clang转换为以下结构：</p>
+
+    <div class="highlighter-rouge"><pre class="highlight"><code>  struct objc_object {
+  	Class isa;
+  };
 </code></pre>
+    </div>
+  </li>
+  <li>
+    <p>其中只有一个isa类对象，就是指向对应的类对象内存地址，如上图所示。 既然提到oc的对象指针，那么我们自然会想到oc中的特殊指针id。 在runtime文件中我们同样可以看到id的定义：</p>
 
-<p>回调函数： </p>
-<pre><code>observeValueForKeyPath:ofObject:change:context:
-</code></pre>
+    <p>typedef struct objc_object *id;
+ 这也就不难理解为什么id指针不用 * 而其他的要有 * 。
+ 所以我们平常所提到的<strong>isa</strong>有三种含义，第一是<strong>实例对象的结构体中的isa</strong>对象，第二是<strong>类中的isa</strong>，其指向<strong>metaClass</strong>类对象，第三是<strong>元类中的isa</strong>,其指向NSObject元类对象。
+  平常我们调用对象的变量，指针都通过第一类isa也就是实例对象中的isa去寻找相关的内容。</p>
+  </li>
+</ul>
 
-<p>移除通知：(这是一定要的，不然会导致crash)</p>
+<h2 id="object-c-1">二、Object-C对象如何生成</h2>
+<p>有了上面的描述之后，相信大家对于objc中的类已经有一定的理解，甚至对其如何生成有一定的概念了。</p>
 
-<pre><code>removeObserver:forKeyPath:
-</code></pre>
+<p>那么，一个Object-C对象在运行时如何被如何创建呢？</p>
 
-<h2 id="objckvo">2. OBJC实现KVO机制的剖析</h2>
-<p>先贴上几个解析来源：</p>
+<p>可以这么说，当我们<code class="highlighter-rouge">alloc/init</code>一个对象时，runtime会创建oc独有的objc_object结构体对象，在创建结构体时会创建其中的isa，然后根据类的相关继承定义，由上往下，由父类往子类去创建相关的类对象，并把其中每个类对象的isa指向全局的meta元类对象。</p>
 
-<p><strong>1.<a href="&quot;https://github.com/ChenYilong/iOSInterviewQuestions&quot;">《招聘一个靠谱的iOS》面试题</a></strong></p>
+<p><code class="highlighter-rouge">alloc/init</code>如何执行？</p>
 
-<p><strong>2.<a href="&quot;https://www.mikeash.com/pyblog/friday-qa-2009-01-23.html&quot;">https://www.mikeash.com/pyblog/friday-qa-2009-01-23.html</a></strong></p>
+<p>一般我们在oc中创建一个对象的方式是<code class="highlighter-rouge">[[Object alloc] init]</code>,这相比起C++的new方法，多了一层函数调用。alloc会先在内存中申请对象的内存空间,init作为构造函数把相关的初始化值赋给对象，对于如NSString,NSDictionary等Foundation框架的对象，由于未能确定其数据长度，在alloc时会先指向一个placeHolder对象，当init的时候再申请相关的内存地址，其中的原因关乎内存字节对齐，由于这部分超出了本文的讨论范围，所以不讲，详情移步google。</p>
 
-<p>objc通过什么来实现对键值添加观察者并发送通知呢？</p>
+<h2 id="section">三、总结</h2>
+<p>Objective-C基于C，其类对象在C语言层面是结构体，由clang转换而成，要探究Objective-C的内存布局，必须从C语言的结构体层面入手。经过分析，我们了解到其大体结构，主要的内容由isa、ivar、method_list等，并且由isa和superclass串联起整个布局。Objective-C对象生成时，实质是生成C的结构体实例，并对串联的isa、superclass指针做初始化，起到布局作用，在oc语言层面的alloc/init使得对象的内存分配和初始化分开，过程更加明确。总而言之，了解和掌握Objective-C的内存布局及对象的创建过程，有助于平时开发和调试，也是提升开发能力的一个要求。</p>
 
-<p>objc基于runtime,以setter方法为入口，实现这一机制。
-首先需要知道的是，objc的对象实例isa指针，内存布局，Class结构体表示类。</p>
-
-<p>当向对象添加键值观察者时，objc通过runtime动态生成对象所属的类的子类，重写setter，并将对象的isa指针指向新类，在此过程中还重写了子类的class方法，向开发者隐藏新建子类 (也就是所谓的isa混写(isa-swizzling))。</p>
-
-<p>在新的类的setter中，执行：</p>
-<pre><code>[super setObject:]
-</code></pre>
-<p>并在前后执行：</p>
-<pre><code>[self willChangeValueForKey:]与[self didChangeValueForKey:]
-</code></pre>
-<p>并在后者执行时调用观察者的回调函数，所以在观察者dealloc时必须注销所设置的观察，否则会发送消息给dealloc对象，造成crash。</p>
-
-<p>##3. KVO的DIY
-照例贴上手动实现KVO的方法链接：<a href="&quot;http://tech.glowing.com/cn/implement-kvo/&quot;">http://tech.glowing.com/cn/implement-kvo/</a></p>
-
-<p>通过上面的剖析，我们知道了KVO的实现原理</p>
-
-<p>如果要手动实现，那有两个过程必须实现</p>
-<pre><code>1.添加观察者接口及过程
-2.键值改变时的通知过程实现
-</code></pre>
-
-<p><strong>1.添加观察者接口及过程</strong></p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>1.1 检查对象的类有没有相应setter方法，如果没有抛出异常；
-	检查对象 isa 指向的类是不是一个有kPGKVOClassPrefix前缀的KVO类，如果不是需要创建新子类，并把isa指针指向新类，实现class方法
-
-1.2 检查有没有KVO的setter方法，没有的话构建新类的setter方法
-
-1.3 把观察者添加到观察者列表，使用***关联对象(objc_setAssociationObj)*** 绑定列表
-</code></pre>
-</div>
-
-<p><strong>2.键值改变时的通知过程实现</strong></p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>2.1 通过runtime动态执行父类也就是原来的类的setter方法
-
-2.2 取出有关keyPath的观察者，并逐一调用回调函数block
-  ##4.KVOController
-</code></pre>
-</div>
-
-<p>👉 <a ref="">FaceBook的KVOController链接</a></p>
-
-<p>KVOController是Facebook开源的一个KVO库，其可以聚合KVO操作，使用block执行观察操作，好处是可以不用自己去remove观察者，防止因为忘记remove造成crash，以下是其用法：</p>
-<pre><code>
-// create KVO controller with observer
-FBKVOController *KVOController = [FBKVOController controllerWithObserver:self];
-self.KVOController = KVOController;
-
-// observe clock date property
-[self.KVOController observe:clock keyPath:@"date" options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew block:^(ClockView *clockView, Clock *clock, NSDictionary *change) {
-
-  // update clock view with new value
-  clockView.date = change[NSKeyValueChangeNewKey];
-}];
-</code></pre>
-
-<h2 id="section">总结</h2>
-
-<p><strong>KVO</strong> 是objc一项重要的特性和设计模式，也是GOF观察者模式的实现。开发中经常用于观察数据层(data)变化而对视图层(view)作出相应的改变，也是一种响应方式。由于其需要手动移动观察，否则会导致crash，所以使用时需要小心。Facebook的KVOController对objc的KVO进行封装，使用block模式，让开发者更省心。KVO在objc的底层实现是isa混编，生成子类并重写setter，然后通知观察中。手动实现KVO需要对类做是否KVO子类的判断，从而决定是否生成子类。总而言之，KVO是objc中一个比较重要的语言特性，使用好它，能为你带来不小的好处。</p>
 
 
                 <hr>
@@ -296,18 +281,11 @@ self.KVOController = KVOController;
 
                 <ul class="pager">
                     
-                    <li class="previous">
-                        <a href="/2015/11/17/Objective-C-%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E4%B8%8E%E5%AF%B9%E8%B1%A1%E7%94%9F%E6%88%90/" data-toggle="tooltip" data-placement="top" title="Objective-C 内存布局与对象生成">
-                        Previous<br>
-                        <span>Objective-C 内存布局与对象生成</span>
-                        </a>
-                    </li>
-                    
                     
                     <li class="next">
-                        <a href="/2016/09/22/%E5%85%B3%E4%BA%8E%E6%88%91%E7%9A%84%E5%8D%9A%E5%AE%A2%E8%AF%B4%E6%98%8E/" data-toggle="tooltip" data-placement="top" title="关于我的博客说明">
+                        <a href="/2015/12/23/iOS%E4%B8%AD%E7%9A%84KVO%E6%9C%BA%E5%88%B6/" data-toggle="tooltip" data-placement="top" title="iOS中的KVO机制剖析">
                         Next<br>
-                        <span>关于我的博客说明</span>
+                        <span>iOS中的KVO机制剖析</span>
                         </a>
                     </li>
                     
@@ -318,9 +296,9 @@ self.KVOController = KVOController;
                 <!-- 多说评论框 start -->
                 <div class="comment">
                     <div class="ds-thread"
-                        data-thread-key="/2015/12/23/iOS中的KVO机制"
-                        data-title="iOS中的KVO机制剖析"
-                        data-url="http://blog.oneinbest.com/2015/12/23/iOS%E4%B8%AD%E7%9A%84KVO%E6%9C%BA%E5%88%B6/" >
+                        data-thread-key="/2015/11/17/Objective-C-内存布局与对象生成"
+                        data-title="Objective-C 内存布局与对象生成"
+                        data-url="http://blog.oneinbest.com/2015/11/17/Objective-C-%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E4%B8%8E%E5%AF%B9%E8%B1%A1%E7%94%9F%E6%88%90/" >
                     </div>
                 </div>
                 <!-- 多说评论框 end -->
