@@ -10,9 +10,9 @@
     <meta name="keywords"  content="王颖, @georgewang, 王颖的博客, GeorgeWang Blog, 博客, 个人网站, 互联网, iOS, 读书, 旅行">
     <link rel="shortcut icon" href="/img/seoIcon.jpg">
 
-    <title>Github 的 ssh 秘钥配置 以及登录问题 - 王颖的博客 | GeorgeWang Blog</title>
+    <title>创建自己的 Github 开源库并发布到 Cocoapods 插件库 - 王颖的博客 | GeorgeWang Blog</title>
 
-    <link rel="canonical" href="http://blog.oneinbest.com/2016/09/22/Github-%E7%9A%84-ssh-%E7%A7%98%E9%92%A5%E9%85%8D%E7%BD%AE%E4%BB%A5%E5%8F%8A%E7%99%BB%E5%BD%95%E9%97%AE%E9%A2%98/">
+    <link rel="canonical" href="http://blog.oneinbest.com/2016/10/10/%E5%88%9B%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84-Github-%E5%BC%80%E6%BA%90%E5%BA%93%E5%B9%B6%E5%8F%91%E5%B8%83%E5%88%B0-Cocoapods-%E6%8F%92%E4%BB%B6%E5%BA%93/">
 
     <!-- Bootstrap Core CSS -->
     <link rel="stylesheet" href="/css/bootstrap.min.css">
@@ -163,17 +163,19 @@
                 <div class="post-heading">
                     <div class="tags">
                         
-                        <a class="tag" href="/tags/#Git" title="Git">Git</a>
+                        <a class="tag" href="/tags/#Github" title="Github">Github</a>
                         
-                        <a class="tag" href="/tags/#ssh" title="ssh">ssh</a>
+                        <a class="tag" href="/tags/#Cocoapods" title="Cocoapods">Cocoapods</a>
+                        
+                        <a class="tag" href="/tags/#OpenSource" title="OpenSource">OpenSource</a>
                         
                     </div>
-                    <h1>Github 的 ssh 秘钥配置 以及登录问题</h1>
+                    <h1>创建自己的 Github 开源库并发布到 Cocoapods 插件库</h1>
                     
                     
                     <h2 class="subheading"></h2>
                     
-                    <span class="meta">Posted by GeorgeWang on September 22, 2016</span>
+                    <span class="meta">Posted by GeorgeWang on October 10, 2016</span>
                 </div>
             </div>
         </div>
@@ -191,103 +193,123 @@
                 col-md-10 col-md-offset-1
                 post-container">
 
-				<p>最近在github上部署项目的时候遇到一个问题，将项目拷贝下来之后，修改完再度push上去，却收到 <strong>Permission to user/repo denied to other-user</strong> 的错误，在github help搜索之后，其给出的答案如下</p>
+				<p><strong>前记：本文用于记录开源库的创建过程备忘以及初学者参考</strong></p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>	This error means the key you are pushing with is attached to an account which does not have access to the repository.
-	To fix this, the owner of the repository (user) needs to add your account (other-user) as a collaborator on the repository or to a team that has write access to the repository.  大概意思就是所给出的秘钥无权利访问这个项目。需要让项目所有者将other-user加入到项目组。
+<p>开发者们平时在<strong>Github</strong>查看各种功能的开源库时，是否想过开源库从何而来？开源库如何创建？使用<strong>Cocoapods</strong>时的<code class="highlighter-rouge">pod 'someLibrary'</code>从何而来？</p>
+
+<p>最近发布了个人第一个严格意义上的开源库<a href="'https://github.com/GeorgeWang03/WYChart'"><strong>WYChart</strong></a>，便想着把这个过程记录下来，以便后来者参考。本文将主要从Cocoapods创建公开库来说明Github + Cocoapods开源库创建全过程。</p>
+
+<h2 id="cocoapods">一、创建Cocoapods工程库</h2>
+
+<h3 id="desktopiospods">1. 在你存放开工程库的工程文件夹目录下（比如我的是~/Desktop/iOS/Pods)，执行下面命令：</h3>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>	pod lib create MyLibrary
 </code></pre>
 </div>
 
-<p>先说下最终的解决办法，其实就是以前登录过的账户保留在系统的钥匙串中，所以当前的用户是other-user，自然无权利访问。办法就是在系统钥匙串设置中将以前的邮箱关于github的钥匙串删除，回到终端重新push，输入账户和用户名，便可以。</p>
+<p>接着会出现以下问题，即工程库为Objective-C还是Swift，<code class="highlighter-rouge">What language do you want to use?? [ Swift / ObjC ]</code>，根据你的需要输入，比如输入<code class="highlighter-rouge">Objc</code>，然后Enter；</p>
 
-<p>下面是分界线
-***</p>
+<p>再接着是 <code class="highlighter-rouge">Would you like to include a demo application with your library? [ Yes / No ]</code>，也就是是否包含<strong>例子工程(demo)</strong>，需要的话选择<code class="highlighter-rouge">Yes</code>；</p>
 
-<p>解决这个问题的时候，更重要的是一开始的误打误撞。</p>
+<p>然后是，<code class="highlighter-rouge">Which testing frameworks will you use? [ Specta / Kiwi / None ]</code>，选择测试框架，不需要的话选<code class="highlighter-rouge">None</code>；</p>
 
-<p><strong>1.最开始</strong> 以为是git的config问题，于是修改username,useremail等，下面是关于git config的一些设置方法</p>
+<p>接着是，<code class="highlighter-rouge">Would you like to do view based testing? [ Yes / No ]</code>，是否要基于视图测试；</p>
 
-<p>config文件路径(mac os下) ： ~/.gitconfig</p>
+<p>最后是<code class="highlighter-rouge">What is your class prefix?</code>输入工程的前缀，所有的文件都会加上这个前缀。</p>
 
-<p>config的设置分为几个等级，global，project，子级默认用上级的设置。</p>
+<p>成功之后会有以下信息：</p>
 
-<p>命令行的设置法</p>
-
-<p>git config [–global] user.name yourUsername
-git config [–global] user.email yourUsername</p>
-
-<p>在项目根目录下执行时，不加–global选项，为设置项目git配置。</p>
-
-<p>config的作用是，设置分支开发时的作者信息，暂时了解这点，其他的后续再研究。</p>
-
-<p><strong>2.随后</strong> 在stackoverflow和githelp上搜索，说是公钥的问题，于是研究了一下ssh key的配置</p>
-
-<p>github用rsa非对称秘钥来进行https的加密，用于客户端与github服务器进行通信时的认证，也就是常见的 git@github.com:user/rep 远程仓库通信。</p>
-
-<p><strong>关于ssh key的部署</strong>，👉 <a href="&quot;https://help.github.com/categories/ssh/&quot;">官方教程</a> 
-大概的步骤是</p>
-
-<p><strong>1.查看系统已经存在的rsa秘钥对</strong></p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	$ ls -al ~/.ssh  如果出现id_dsa与id_dsa.pub类似的私钥公钥秘钥对的话，就证明以前配置过，当然在这里是介绍怎么配置，所以继续往下看
+<div class="highlighter-rouge"><pre class="highlight"><code>	Ace! you're ready to go!
+	We will start you off by opening your project in Xcode
+	open 'WYAnimations/Example/WYAnimations.xcworkspace'
 </code></pre>
 </div>
 
-<p><strong>2.新建秘钥对并添加到ssh代理</strong></p>
+<p>即工程库创建成功，🍺🍺🎆🎆🍻🍻</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>	$ ssh-keygen -t rsa -b 4096 -C "your_email@example.com"  然后设置秘钥的名字
+<h3 id="section">2. 工程库目录简介</h3>
 
-	Enter a file in which to save the key (/Users/you/.ssh/id_rsa):  一般自己命名为 **id_rsa_somename**
+<p>工程库创建完之后，Xcode界面会弹出:</p>
+
+<p><img src="/img/post_img/2016-10-10-Github_Cocoapods/Xcode_Template.png" alt="XcodeTemplate" /></p>
+
+<p>由上往下可以看到主要的文件夹有<strong>Podspec Metadata</strong>，<strong>Example for yourLibrary</strong>，<strong>Development Pods - YourLibrary</strong>。
+	<strong>Podspec Metadata</strong>中分别有<strong>.podspec</strong>、<strong>README.md</strong>和<strong>LICENSE</strong>，<strong>.podspec</strong>为工程库的信息，详情格式google，<strong>README.md</strong>中可以对工程库做介绍，cocoapods会默认帮你生成一个介绍的模版:</p>
+
+<p><img src="/img/post_img/2016-10-10-Github_Cocoapods/README_DEFAULT.png" alt="README" /></p>
+
+<p>值得注意的是，<strong>README</strong>文件中常见的小图标，如<img src="https://img.shields.io/cocoapods/l/WYAnimations.svg?style=flat" alt="icon" /> 等，可以在<a href="http://shields.io/">这里</a>找到并定制。
+	<strong>LICENSE</strong>默认是<strong>MIT</strong>，你可以根据需要自行选择如Apache或 <a href="http://choosealicense.com/">其它的</a> 。</p>
+
+<p><strong>Example for yourLibrary</strong>便是存放Demo例子的文件夹，如同平时创建Xcode工程时一样。
+	<strong>Development Pods - YourLibrary</strong>，可以看到里面有<strong>ReplaceMe.m</strong>文件，顾名思义，就是用你的组件库内容替换它，也即是工程库文件的存放地。</p>
+
+<h3 id="section-1">3. 开发</h3>
+
+<p>在了解并创建完上述的工程之后，就可以编写你的工程库以及demo例子，如果工程和例子已经写好，那么直接复制替换到文件夹中就可以进入下一步发包了。</p>
+
+<h2 id="github">二、加入版本控制并推到Github</h2>
+
+<p>在Github上创建一个工程库，并在刚刚创建的本地工程库目录中，执行下面命令：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>$ git init  //初始化git仓库
+$ git add . //暂存所有修改
+$ git commit -m "first commit"  //提交修改
+$ git remote add origin git@github.com:YourUserName/	  YourRepository.git  //添加远程仓库
+$ git push -u origin master  //把本地内容推到Github远程仓库
 </code></pre>
 </div>
 
-<p>接下去的问题验证有兴趣的可以到githelp看，这里不做详解</p>
+<p>至此，你便可以随时将修改更新到Github仓库上。</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>	Enter passphrase (empty for no passphrase): [Type a passphrase]
-	Enter same passphrase again: [Type passphrase again]  直接按enter也可以
+<h2 id="cocoapods-1">三、把版本的工程库发布到Cocoapods公开库或私有库</h2>
+
+<p>备注：这里主要介绍公开库，私有库👉<a href="https://guides.cocoapods.org/making/private-cocoapods">点击这里</a>，公开库英文原版介绍👉<a href="https://guides.cocoapods.org/making/getting-setup-with-trunk">点击这里</a></p>
+
+<h3 id="pod">1.创建pod帐号</h3>
+
+<p>如果你已经创建过，可以跳过这一步。</p>
+
+<p>在终端输入(pod帐号不需要密码，只是一个token存放在你的机器上)：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>	$ pod trunk register 你的邮箱 '你的用户名' --description='关于你的机器的描述'
 </code></pre>
 </div>
 
-<p><strong>3.把秘钥对添加到代理</strong></p>
+<p>创建完，或者创建过之后，执行下面命令：</p>
 
-<p>首先查看代理是否可用</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	$ eval "$(ssh-agent -s)"  出现下面结果
-
-	Agent pid 59566(或者其它id)  证明是有用的，然后
-
-	$ ssh-add ~/.ssh/id_rsa  id_rsa应该是第2步时你秘钥的命名
+<div class="highlighter-rouge"><pre class="highlight"><code>	$ pod trunk me
 </code></pre>
 </div>
 
-<p><strong>4.把秘钥添加到你的github</strong></p>
+<p>会出现如下信息：</p>
 
-<p>复制秘钥信息到粘贴板</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	$ pbcopy &lt; ~/.ssh/id_rsa.pub  选择github个人的 **setting-SSH and GPG keys-New SSH key or Add SSH key**
+<div class="highlighter-rouge"><pre class="highlight"><code>	- Name:     GeorgeWang  //用户名
+  		- Email:    georgewang003@gmail.com  //邮箱
+  		- Since:    September 18th, 08:44  //时间
+  		- Pods:	// 创建过的开源库
+		- WYChart
+  		- Sessions:
 </code></pre>
 </div>
 
-<p>输入一个秘钥名字，然后command+v粘贴秘钥内容，最后点击<strong>Add SSH key</strong>确认。</p>
+<h3 id="section-2">2.发布开源库</h3>
 
-<p>5.检测秘钥对是否能链接成功</p>
+<p>⚠️ 需要注意的是，cocoapods对发布的开源库要求没有任何错误或警告信息，而且要有证书（这一点由于我们在上面的创建中已经生成证书所以不用担心）。</p>
 
-<p>终端输入 ：</p>
+<p>确定你的工程没有问题，以及版本正确之后，你需要在你的项目目录中创建一个<strong>git分支</strong>，标注版本号，如<code class="highlighter-rouge">0.1.0</code>，这样才会被cocoapods接受。</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>	ssh -T git@github.com  如果出现：
+<p>最后，在工程库目录执行下述命令：</p>
 
-	Hi username! You've successfully authenticated, but GitHub does not provide shell access.  则验证成功，可以正常使用了。
+<div class="highlighter-rouge"><pre class="highlight"><code>	pod trunk push [NAME.podspec]
 </code></pre>
 </div>
 
-<p>其实如果没配置ssh key的话，提示的错误信息应该是 <strong>Permission to user/repo denied to (other-)user/other-repo</strong> ，所以遇到这个问题时也可以借鉴一下。</p>
+<p>如果成功的话，工程库便发布到cocoapods上了。</p>
 
-<p>如果有其它问题，请到githelp寻求帮助。</p>
+<p>可以在其它工程里面的<strong>podfile</strong>尝试加入<code class="highlighter-rouge">pod YourRepository</code>，然后<code class="highlighter-rouge">pod install</code>，如果成功，即工程库发布成功。🍻🍻🎆🎆</p>
 
-<p><strong>以上</strong> 两种就是一开始误打误撞去探究的结果，虽说没有解决问题，但是也学如何配置git的秘钥等内容。</p>
-
-<p><strong>总而言之</strong>，github的账户切换时，要注意对配置信息和钥匙串的更换，否则会出现Permission … denied to … 的错误。</p>
-
+<p><strong>后记：发布流程至此结束，如果你对开源库有兴趣，行动吧，并推广你的开源库，让更多人知道你！</strong></p>
 
 
                 <hr>
@@ -298,19 +320,12 @@ git config [–global] user.email yourUsername</p>
                 <ul class="pager">
                     
                     <li class="previous">
-                        <a href="/2016/09/22/%E5%85%B3%E4%BA%8E%E6%88%91%E7%9A%84%E5%8D%9A%E5%AE%A2%E8%AF%B4%E6%98%8E/" data-toggle="tooltip" data-placement="top" title="关于我的博客说明">
+                        <a href="/2016/09/22/Github-%E7%9A%84-ssh-%E7%A7%98%E9%92%A5%E9%85%8D%E7%BD%AE%E4%BB%A5%E5%8F%8A%E7%99%BB%E5%BD%95%E9%97%AE%E9%A2%98/" data-toggle="tooltip" data-placement="top" title="Github 的 ssh 秘钥配置 以及登录问题">
                         Previous<br>
-                        <span>关于我的博客说明</span>
+                        <span>Github 的 ssh 秘钥配置 以及登录问题</span>
                         </a>
                     </li>
                     
-                    
-                    <li class="next">
-                        <a href="/2016/10/10/%E5%88%9B%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84-Github-%E5%BC%80%E6%BA%90%E5%BA%93%E5%B9%B6%E5%8F%91%E5%B8%83%E5%88%B0-Cocoapods-%E6%8F%92%E4%BB%B6%E5%BA%93/" data-toggle="tooltip" data-placement="top" title="创建自己的 Github 开源库并发布到 Cocoapods 插件库">
-                        Next<br>
-                        <span>创建自己的 Github 开源库并发布到 Cocoapods 插件库</span>
-                        </a>
-                    </li>
                     
                 </ul>
 
@@ -319,9 +334,9 @@ git config [–global] user.email yourUsername</p>
                 <!-- 多说评论框 start -->
                 <div class="comment">
                     <div class="ds-thread"
-                        data-thread-key="/2016/09/22/Github-的-ssh-秘钥配置以及登录问题"
-                        data-title="Github 的 ssh 秘钥配置 以及登录问题"
-                        data-url="http://blog.oneinbest.com/2016/09/22/Github-%E7%9A%84-ssh-%E7%A7%98%E9%92%A5%E9%85%8D%E7%BD%AE%E4%BB%A5%E5%8F%8A%E7%99%BB%E5%BD%95%E9%97%AE%E9%A2%98/" >
+                        data-thread-key="/2016/10/10/创建自己的-Github-开源库并发布到-Cocoapods-插件库"
+                        data-title="创建自己的 Github 开源库并发布到 Cocoapods 插件库"
+                        data-url="http://blog.oneinbest.com/2016/10/10/%E5%88%9B%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84-Github-%E5%BC%80%E6%BA%90%E5%BA%93%E5%B9%B6%E5%8F%91%E5%B8%83%E5%88%B0-Cocoapods-%E6%8F%92%E4%BB%B6%E5%BA%93/" >
                     </div>
                 </div>
                 <!-- 多说评论框 end -->

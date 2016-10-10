@@ -5,9 +5,142 @@
     <description>iOS、创作与设计 | 王颖，iOS Engineer | 这里是王颖的个人博客，我们在这里分享技术，分享见闻，分享人生</description>
     <link>http://blog.oneinbest.com/</link>
     <atom:link href="http://blog.oneinbest.com/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Tue, 27 Sep 2016 14:39:00 +0800</pubDate>
-    <lastBuildDate>Tue, 27 Sep 2016 14:39:00 +0800</lastBuildDate>
+    <pubDate>Mon, 10 Oct 2016 18:34:46 +0800</pubDate>
+    <lastBuildDate>Mon, 10 Oct 2016 18:34:46 +0800</lastBuildDate>
     <generator>Jekyll v3.2.1</generator>
+    
+      <item>
+        <title>创建自己的 Github 开源库并发布到 Cocoapods 插件库</title>
+        <description>&lt;p&gt;&lt;strong&gt;前记：本文用于记录开源库的创建过程备忘以及初学者参考&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;开发者们平时在&lt;strong&gt;Github&lt;/strong&gt;查看各种功能的开源库时，是否想过开源库从何而来？开源库如何创建？使用&lt;strong&gt;Cocoapods&lt;/strong&gt;时的&lt;code class=&quot;highlighter-rouge&quot;&gt;pod 'someLibrary'&lt;/code&gt;从何而来？&lt;/p&gt;
+
+&lt;p&gt;最近发布了个人第一个严格意义上的开源库&lt;a href=&quot;'https://github.com/GeorgeWang03/WYChart'&quot;&gt;&lt;strong&gt;WYChart&lt;/strong&gt;&lt;/a&gt;，便想着把这个过程记录下来，以便后来者参考。本文将主要从Cocoapods创建公开库来说明Github + Cocoapods开源库创建全过程。&lt;/p&gt;
+
+&lt;h2 id=&quot;cocoapods&quot;&gt;一、创建Cocoapods工程库&lt;/h2&gt;
+
+&lt;h3 id=&quot;desktopiospods&quot;&gt;1. 在你存放开工程库的工程文件夹目录下（比如我的是~/Desktop/iOS/Pods)，执行下面命令：&lt;/h3&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	pod lib create MyLibrary
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;接着会出现以下问题，即工程库为Objective-C还是Swift，&lt;code class=&quot;highlighter-rouge&quot;&gt;What language do you want to use?? [ Swift / ObjC ]&lt;/code&gt;，根据你的需要输入，比如输入&lt;code class=&quot;highlighter-rouge&quot;&gt;Objc&lt;/code&gt;，然后Enter；&lt;/p&gt;
+
+&lt;p&gt;再接着是 &lt;code class=&quot;highlighter-rouge&quot;&gt;Would you like to include a demo application with your library? [ Yes / No ]&lt;/code&gt;，也就是是否包含&lt;strong&gt;例子工程(demo)&lt;/strong&gt;，需要的话选择&lt;code class=&quot;highlighter-rouge&quot;&gt;Yes&lt;/code&gt;；&lt;/p&gt;
+
+&lt;p&gt;然后是，&lt;code class=&quot;highlighter-rouge&quot;&gt;Which testing frameworks will you use? [ Specta / Kiwi / None ]&lt;/code&gt;，选择测试框架，不需要的话选&lt;code class=&quot;highlighter-rouge&quot;&gt;None&lt;/code&gt;；&lt;/p&gt;
+
+&lt;p&gt;接着是，&lt;code class=&quot;highlighter-rouge&quot;&gt;Would you like to do view based testing? [ Yes / No ]&lt;/code&gt;，是否要基于视图测试；&lt;/p&gt;
+
+&lt;p&gt;最后是&lt;code class=&quot;highlighter-rouge&quot;&gt;What is your class prefix?&lt;/code&gt;输入工程的前缀，所有的文件都会加上这个前缀。&lt;/p&gt;
+
+&lt;p&gt;成功之后会有以下信息：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	Ace! you're ready to go!
+	We will start you off by opening your project in Xcode
+	open 'WYAnimations/Example/WYAnimations.xcworkspace'
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;即工程库创建成功，🍺🍺🎆🎆🍻🍻&lt;/p&gt;
+
+&lt;h3 id=&quot;section&quot;&gt;2. 工程库目录简介&lt;/h3&gt;
+
+&lt;p&gt;工程库创建完之后，Xcode界面会弹出:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-10-Github_Cocoapods/Xcode_Template.png&quot; alt=&quot;XcodeTemplate&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;由上往下可以看到主要的文件夹有&lt;strong&gt;Podspec Metadata&lt;/strong&gt;，&lt;strong&gt;Example for yourLibrary&lt;/strong&gt;，&lt;strong&gt;Development Pods - YourLibrary&lt;/strong&gt;。
+	&lt;strong&gt;Podspec Metadata&lt;/strong&gt;中分别有&lt;strong&gt;.podspec&lt;/strong&gt;、&lt;strong&gt;README.md&lt;/strong&gt;和&lt;strong&gt;LICENSE&lt;/strong&gt;，&lt;strong&gt;.podspec&lt;/strong&gt;为工程库的信息，详情格式google，&lt;strong&gt;README.md&lt;/strong&gt;中可以对工程库做介绍，cocoapods会默认帮你生成一个介绍的模版:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-10-Github_Cocoapods/README_DEFAULT.png&quot; alt=&quot;README&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;值得注意的是，&lt;strong&gt;README&lt;/strong&gt;文件中常见的小图标，如&lt;img src=&quot;https://img.shields.io/cocoapods/l/WYAnimations.svg?style=flat&quot; alt=&quot;icon&quot; /&gt; 等，可以在&lt;a href=&quot;http://shields.io/&quot;&gt;这里&lt;/a&gt;找到并定制。
+	&lt;strong&gt;LICENSE&lt;/strong&gt;默认是&lt;strong&gt;MIT&lt;/strong&gt;，你可以根据需要自行选择如Apache或 &lt;a href=&quot;http://choosealicense.com/&quot;&gt;其它的&lt;/a&gt; 。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Example for yourLibrary&lt;/strong&gt;便是存放Demo例子的文件夹，如同平时创建Xcode工程时一样。
+	&lt;strong&gt;Development Pods - YourLibrary&lt;/strong&gt;，可以看到里面有&lt;strong&gt;ReplaceMe.m&lt;/strong&gt;文件，顾名思义，就是用你的组件库内容替换它，也即是工程库文件的存放地。&lt;/p&gt;
+
+&lt;h3 id=&quot;section-1&quot;&gt;3. 开发&lt;/h3&gt;
+
+&lt;p&gt;在了解并创建完上述的工程之后，就可以编写你的工程库以及demo例子，如果工程和例子已经写好，那么直接复制替换到文件夹中就可以进入下一步发包了。&lt;/p&gt;
+
+&lt;h2 id=&quot;github&quot;&gt;二、加入版本控制并推到Github&lt;/h2&gt;
+
+&lt;p&gt;在Github上创建一个工程库，并在刚刚创建的本地工程库目录中，执行下面命令：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ git init  //初始化git仓库
+$ git add . //暂存所有修改
+$ git commit -m &quot;first commit&quot;  //提交修改
+$ git remote add origin git@github.com:YourUserName/	  YourRepository.git  //添加远程仓库
+$ git push -u origin master  //把本地内容推到Github远程仓库
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;至此，你便可以随时将修改更新到Github仓库上。&lt;/p&gt;
+
+&lt;h2 id=&quot;cocoapods-1&quot;&gt;三、把版本的工程库发布到Cocoapods公开库或私有库&lt;/h2&gt;
+
+&lt;p&gt;备注：这里主要介绍公开库，私有库👉&lt;a href=&quot;https://guides.cocoapods.org/making/private-cocoapods&quot;&gt;点击这里&lt;/a&gt;，公开库英文原版介绍👉&lt;a href=&quot;https://guides.cocoapods.org/making/getting-setup-with-trunk&quot;&gt;点击这里&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;pod&quot;&gt;1.创建pod帐号&lt;/h3&gt;
+
+&lt;p&gt;如果你已经创建过，可以跳过这一步。&lt;/p&gt;
+
+&lt;p&gt;在终端输入(pod帐号不需要密码，只是一个token存放在你的机器上)：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	$ pod trunk register 你的邮箱 '你的用户名' --description='关于你的机器的描述'
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;创建完，或者创建过之后，执行下面命令：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	$ pod trunk me
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;会出现如下信息：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	- Name:     GeorgeWang  //用户名
+  		- Email:    georgewang003@gmail.com  //邮箱
+  		- Since:    September 18th, 08:44  //时间
+  		- Pods:	// 创建过的开源库
+		- WYChart
+  		- Sessions:
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h3 id=&quot;section-2&quot;&gt;2.发布开源库&lt;/h3&gt;
+
+&lt;p&gt;⚠️ 需要注意的是，cocoapods对发布的开源库要求没有任何错误或警告信息，而且要有证书（这一点由于我们在上面的创建中已经生成证书所以不用担心）。&lt;/p&gt;
+
+&lt;p&gt;确定你的工程没有问题，以及版本正确之后，你需要在你的项目目录中创建一个&lt;strong&gt;git分支&lt;/strong&gt;，标注版本号，如&lt;code class=&quot;highlighter-rouge&quot;&gt;0.1.0&lt;/code&gt;，这样才会被cocoapods接受。&lt;/p&gt;
+
+&lt;p&gt;最后，在工程库目录执行下述命令：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	pod trunk push [NAME.podspec]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;如果成功的话，工程库便发布到cocoapods上了。&lt;/p&gt;
+
+&lt;p&gt;可以在其它工程里面的&lt;strong&gt;podfile&lt;/strong&gt;尝试加入&lt;code class=&quot;highlighter-rouge&quot;&gt;pod YourRepository&lt;/code&gt;，然后&lt;code class=&quot;highlighter-rouge&quot;&gt;pod install&lt;/code&gt;，如果成功，即工程库发布成功。🍻🍻🎆🎆&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;后记：发布流程至此结束，如果你对开源库有兴趣，行动吧，并推广你的开源库，让更多人知道你！&lt;/strong&gt;&lt;/p&gt;
+</description>
+        <pubDate>Mon, 10 Oct 2016 01:13:00 +0800</pubDate>
+        <link>http://blog.oneinbest.com/2016/10/10/%E5%88%9B%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84-Github-%E5%BC%80%E6%BA%90%E5%BA%93%E5%B9%B6%E5%8F%91%E5%B8%83%E5%88%B0-Cocoapods-%E6%8F%92%E4%BB%B6%E5%BA%93/</link>
+        <guid isPermaLink="true">http://blog.oneinbest.com/2016/10/10/%E5%88%9B%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84-Github-%E5%BC%80%E6%BA%90%E5%BA%93%E5%B9%B6%E5%8F%91%E5%B8%83%E5%88%B0-Cocoapods-%E6%8F%92%E4%BB%B6%E5%BA%93/</guid>
+        
+        <category>Github</category>
+        
+        <category>Cocoapods</category>
+        
+        <category>OpenSource</category>
+        
+        
+      </item>
     
       <item>
         <title>Github 的 ssh 秘钥配置 以及登录问题</title>
