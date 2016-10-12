@@ -115,5 +115,24 @@ tags:
 
 可以在其它工程里面的**podfile**尝试加入`pod YourRepository`，然后`pod install`，如果成功，即工程库发布成功。🍻🍻🎆🎆 
 
+### 3.发布开源库的新版本
+
+经历上述流程，我们已经把最初版本发布到cocoapods了，如果后续开发时，有新的版本发布，那么就需要更新cocoapods版本。具体流程如下
+
+* 更新Podspec文件中的版本号，并把修改好的文件提交到mater分支
+* 在你确认发布的代码版本上打标签，标签版本号和上一步修改的一致
+
+		git tag *version* 
+		git push origin --tags //推到github
+		
+* 检测新版本是否通过pod验证
+		
+		pod spec lint *your_pod_name*.podspec 
+		
+* 如果通过了，那么发布podspec文件
+
+		pod trunk push *your_pod_name*.podspec
+
+至此，新版本发布完成 🍻🍻  [原文链接](http://sebastiandobrincu.com/blog/how-to-update-your-cocoapods-library-version)
 
 **后记：发布流程至此结束，如果你对开源库有兴趣，行动吧，并推广你的开源库，让更多人知道你！**
