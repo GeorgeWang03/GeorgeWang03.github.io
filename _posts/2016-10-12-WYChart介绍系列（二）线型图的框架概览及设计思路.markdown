@@ -1,0 +1,147 @@
+---
+layout:     post
+title:      "WYChart介绍系列（二）线型图的框架概览及设计思路"
+date:       2016-10-12 11:31:00
+author:     "GeorgeWang"
+header-img: "img/post-bg-miui6.jpg"
+tags:
+    - WYChart
+    - 开源
+    - 动画
+---
+
+# 零
+--- 
+
+一开始有做**[WYChart](https://github.com/GeorgeWang03/WYChart)**的想法，是公司的项目需要，在做了一段时间之后，刚好手头工作不多，于是萌生一个念头，试着自己写一个图表库，于是，WYChart便开始了。
+
+**[WYChart](https://github.com/GeorgeWang03/WYChart)** 里面包含了不少的技术点，动画的，绘制的，交互的，之所以在这之前没有做自己的图表库，原因之一是上文提到的公司项目需要才想到，另外一个很重要的原因是，没有相关方面的技术积累，也就是对动画，绘制，交互的一个全面的了解。恰巧在这之前，我看了《iOS Core Animation Tutorial》这本书以及一些优秀的开源库，动画库的源码，例如[**BEMSimpleLineGraph**](https://github.com/Boris-Em/BEMSimpleLineGraph)、[**ANDLineChartView**](https://github.com/anaglik/ANDLineChartView) 等，因此也对动画和绘制以及交互又了一个整体上的了解，进而全面的考虑各种实现方式的优缺点，以及采用更多的动画效果，交互方式。
+
+**[WYChart](https://github.com/GeorgeWang03/WYChart)** 中，第一个做的是线型图，根据自己的判断，一个线型图，既要考虑内容的丰富、也要考虑用户的使用方便，又要考虑后续开发的可扩展性，难度不小，于是决定分而治之，逐个击破。
+
+# 壹
+***
+
+为了用户使用方便，降低学习成本，整个图库采用Cocoa典型的delegate/datasource模式，也就是UITableView/UICollectionView的模式，并结合属性设置，让图形的定制性更好。
+
+例如，以下两个代理方法(required)，可以自己定制X轴和Y轴的标签数目
+
+		- (NSInteger)numberOfLabelOnXAxisInLineChartView:(WYLineChartView *)chartView;
+		- (NSInteger)numberOfLabelOnYAxisInLineChartView:(WYLineChartView *)chartView;
+
+有如，以下两个选择性（optional）代理方法，可以自己定制水平和垂直方向参考线的数目
+
+		- (NSInteger)numberOfReferenceLineVerticalInLineChartView:(WYLineChartView *)chartView;
+		- (NSInteger)numberOfReferenceLineHorizontalInLineChartView:(WYLineChartView *)chartView;
+
+而在属性定制方面，有如下：
+
+设置可滑动：
+
+		@property (nonatomic) BOOL scrollable; //横向滑动
+		
+设置可缩放：
+	
+		@property (nonatomic) BOOL pinchable;
+		
+关于动画的类型和时间：
+
+		@property (nonatomic) WYLineChartAnimationStyle animationStyle;
+		@property (nonatomic) CGFloat animationDuration;
+		
+等等这些，对图形做多方面的定制。
+
+
+从分而治之的思想出发，把一个功能丰富的线型图分解为多个部件，如下图所示：
+
+![Total_Architecture](/img/post_img/2016-10-12-WYChart-Line-Architecture/Total_Architecture.jpg)
+
+一开始把线型图分为前景图和背景图。
+
+背景图相对简单，包含了背景，X轴图层，Y轴图层。
+
+前景图是最重要的，也是绘制难度最高的，并且动画最多的。
+
+其中包含水平、垂直、触碰点等参考线的图层；
+
+还包含最为核心的曲线图层。曲线图层又可以分为点、线以及渐变前景的绘制。
+
+而点的形状，可以分为三角形、正方形、圆形、五角星形，又可以分为空心与非空心，一共有八种形状。
+
+也就是代码中对应以下的几种类型：
+
+		typedef NS_ENUM(NSUInteger, WYLineChartJunctionShapeStyle) {
+    
+    		kWYLineChartJunctionShapeNone,
+    		kWYLineChartJunctionShapeSolidCircle,
+    		kWYLineChartJunctionShapeHollowCircle,
+    		kWYLineChartJunctionShapeSolidSquare,
+    		kWYLineChartJunctionShapeHollowSquare,
+    		kWYLineChartJunctionShapeSolidRectangle,
+    		kWYLineChartJunctionShapeHollowRectangle,
+    		kWYLineChartJunctionShapeSolidStar,
+    		kWYLineChartJunctionShapeHollowStar
+		};
+
+线的形状，可以分为折线、波浪状平滑曲线、尖峰状曲线，又可以分为实线和虚线。
+
+对应以下的类型：
+
+		typedef NS_ENUM(NSUInteger, WYLineChartMainLineStyle) {
+    
+    		kWYLineChartMainStraightLine,
+    		kWYLineChartMainBezierWaveLine,
+    		kWYLineChartMainBezierTaperLine,
+    		kWYLineChartMainNoneLine
+		};
+		
+以上是关于**图形层级结构**以及**绘制**的分解情况。
+
+# 贰
+***
+
+**此外**，**动画展示**也是线型图的一个重点，如果没有动画，那么再好的绘制也少了一点生机，这一方面也是国内大多数app比较缺乏的。
+线型图的动画主要是线条的动画，线条动画的分类如下所示：
+
+![Animation_Architecture](/img/post_img/2016-10-12-WYChart-Line-Architecture/Animation_Architecture.jpg)
+
+可以看到，动画一共可以分为5种，为透明度动画、线条宽带动画、绘制动画、上升动画以及弹簧动画。
+
+对应代码中的类型：
+
+		typedef NS_ENUM(NSUInteger, WYLineChartAnimationStyle) {
+    
+    		kWYLineChartAnimationDrawing,
+    		kWYLineChartAnimationAlpha,
+    		kWYLineChartAnimationWidth,
+    		kWYLineChartAnimationRise,
+    		kWYLineChartAnimationSpring,
+    		kWYLineChartNoneAnimation
+		};
+
+关于动画的介绍及实现，后续的文章会做介绍，这里不多赘述。
+
+# 叁
+***
+
+**最后**，**交互**是线型图的一个关键，让用户能够更好的互动。
+
+考虑到移动设备屏幕一般都比较小，当数据多的时候，数据点显示会过于拥挤，因此，使用可滑动的线图，展示更多的数据就比较重要了。
+
+线型图中支持可滑动与不可滑动两种，通过`scrollable`属性进行设置。
+
+又考虑到线型图可能会展示同一类型的多种层级的数据，于是，如何进行更好的切换等级，显得比较重要，WYChart采用了**捏合手势**对线图做等级切换，实际上是更改数据源并做刷新。
+
+由于给出的数据点有限，如果我们对两个数据点之间的某些数据感兴趣，那么如果获取呢？
+
+经过一番思考以及参考别人的做法，一个可滑动的点会比较直观地显示两点间的数据，加上辅助标签和线，让点更佳直观；通过长按图形，进而滑动数据点来查看不同区间的数据值，交互感更强。
+
+
+# 肆
+***
+
+有时候一个效果很炫的动画或者一个功能很强大的工具，开始看到的时候会让我们吃惊，感觉难度很高，不可企及；但是，当你对相关的技术点有了一定的了解，再对眼前的庞然大物进行分解（分而治之），再加以实践，你会觉得其实并没有想象中难。任何一个工具，任何一个工程，都是从一行一行代码逐渐实现出来的，所以，只要有心探索研究，没有不可能。
+
+总而言之，WYChart中的线型图，以分而治之的思想，从模式、绘制、动画、交互四方面入手，逐个击破完善，从而实现一个较为满意的线型图，这个过程是一个挑战，也是一个学习提高的过程，希望以上能对你有所帮助，不足的希望得到您的反馈建议。
+
+在下一篇我将继续介绍线型图绘制的实现。

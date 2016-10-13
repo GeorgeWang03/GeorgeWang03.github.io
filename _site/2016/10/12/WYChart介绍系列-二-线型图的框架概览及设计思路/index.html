@@ -10,9 +10,9 @@
     <meta name="keywords"  content="王颖, @georgewang, 王颖的博客, GeorgeWang Blog, 博客, 个人网站, 互联网, iOS, 读书, 旅行">
     <link rel="shortcut icon" href="/img/seoIcon.jpg">
 
-    <title>创建自己的 Github 开源库并发布到 Cocoapods 插件库 - 王颖的博客 | GeorgeWang Blog</title>
+    <title>WYChart介绍系列（二）线型图的框架概览及设计思路 - 王颖的博客 | GeorgeWang Blog</title>
 
-    <link rel="canonical" href="http://blog.oneinbest.com/2016/10/10/%E5%88%9B%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84-Github-%E5%BC%80%E6%BA%90%E5%BA%93%E5%B9%B6%E5%8F%91%E5%B8%83%E5%88%B0-Cocoapods-%E6%8F%92%E4%BB%B6%E5%BA%93/">
+    <link rel="canonical" href="http://blog.oneinbest.com/2016/10/12/WYChart%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%BA%8C-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E7%9A%84%E6%A1%86%E6%9E%B6%E6%A6%82%E8%A7%88%E5%8F%8A%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF/">
 
     <!-- Bootstrap Core CSS -->
     <link rel="stylesheet" href="/css/bootstrap.min.css">
@@ -163,19 +163,19 @@
                 <div class="post-heading">
                     <div class="tags">
                         
-                        <a class="tag" href="/tags/#Github" title="Github">Github</a>
+                        <a class="tag" href="/tags/#WYChart" title="WYChart">WYChart</a>
                         
-                        <a class="tag" href="/tags/#Cocoapods" title="Cocoapods">Cocoapods</a>
+                        <a class="tag" href="/tags/#开源" title="开源">开源</a>
                         
-                        <a class="tag" href="/tags/#OpenSource" title="OpenSource">OpenSource</a>
+                        <a class="tag" href="/tags/#动画" title="动画">动画</a>
                         
                     </div>
-                    <h1>创建自己的 Github 开源库并发布到 Cocoapods 插件库</h1>
+                    <h1>WYChart介绍系列（二）线型图的框架概览及设计思路</h1>
                     
                     
                     <h2 class="subheading"></h2>
                     
-                    <span class="meta">Posted by GeorgeWang on October 10, 2016</span>
+                    <span class="meta">Posted by GeorgeWang on October 12, 2016</span>
                 </div>
             </div>
         </div>
@@ -193,155 +193,155 @@
                 col-md-10 col-md-offset-1
                 post-container">
 
-				<p><strong>前记：本文用于记录开源库的创建过程备忘以及初学者参考</strong></p>
+				<h1 id="section">零</h1>
+<hr />
 
-<p>开发者们平时在<strong>Github</strong>查看各种功能的开源库时，是否想过开源库从何而来？开源库如何创建？使用<strong>Cocoapods</strong>时的<code class="highlighter-rouge">pod 'someLibrary'</code>从何而来？</p>
+<p>一开始有做<strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong>的想法，是公司的项目需要，在做了一段时间之后，刚好手头工作不多，于是萌生一个念头，试着自己写一个图表库，于是，WYChart便开始了。</p>
 
-<p>最近发布了个人第一个严格意义上的开源库<a href="'https://github.com/GeorgeWang03/WYChart'"><strong>WYChart</strong></a>，便想着把这个过程记录下来，以便后来者参考。本文将主要从Cocoapods创建公开库来说明Github + Cocoapods开源库创建全过程。</p>
+<p><strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong> 里面包含了不少的技术点，动画的，绘制的，交互的，之所以在这之前没有做自己的图表库，原因之一是上文提到的公司项目需要才想到，另外一个很重要的原因是，没有相关方面的技术积累，也就是对动画，绘制，交互的一个全面的了解。恰巧在这之前，我看了《iOS Core Animation Tutorial》这本书以及一些优秀的开源库，动画库的源码，例如<a href="https://github.com/Boris-Em/BEMSimpleLineGraph"><strong>BEMSimpleLineGraph</strong></a>、<a href="https://github.com/anaglik/ANDLineChartView"><strong>ANDLineChartView</strong></a> 等，因此也对动画和绘制以及交互又了一个整体上的了解，进而全面的考虑各种实现方式的优缺点，以及采用更多的动画效果，交互方式。</p>
 
-<h2 id="cocoapods">一、创建Cocoapods工程库</h2>
+<p><strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong> 中，第一个做的是线型图，根据自己的判断，一个线型图，既要考虑内容的丰富、也要考虑用户的使用方便，又要考虑后续开发的可扩展性，难度不小，于是决定分而治之，逐个击破。</p>
 
-<h3 id="desktopiospods">1. 在你存放开工程库的工程文件夹目录下（比如我的是~/Desktop/iOS/Pods)，执行下面命令：</h3>
+<h1 id="section-1">壹</h1>
+<hr />
 
-<div class="highlighter-rouge"><pre class="highlight"><code>	pod lib create MyLibrary
+<p>为了用户使用方便，降低学习成本，整个图库采用Cocoa典型的delegate/datasource模式，也就是UITableView/UICollectionView的模式，并结合属性设置，让图形的定制性更好。</p>
+
+<p>例如，以下两个代理方法(required)，可以自己定制X轴和Y轴的标签数目</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>	- (NSInteger)numberOfLabelOnXAxisInLineChartView:(WYLineChartView *)chartView;
+	- (NSInteger)numberOfLabelOnYAxisInLineChartView:(WYLineChartView *)chartView;
 </code></pre>
 </div>
 
-<p>接着会出现以下问题，即工程库为Objective-C还是Swift，<code class="highlighter-rouge">What language do you want to use?? [ Swift / ObjC ]</code>，根据你的需要输入，比如输入<code class="highlighter-rouge">Objc</code>，然后Enter；</p>
+<p>有如，以下两个选择性（optional）代理方法，可以自己定制水平和垂直方向参考线的数目</p>
 
-<p>再接着是 <code class="highlighter-rouge">Would you like to include a demo application with your library? [ Yes / No ]</code>，也就是是否包含<strong>例子工程(demo)</strong>，需要的话选择<code class="highlighter-rouge">Yes</code>；</p>
-
-<p>然后是，<code class="highlighter-rouge">Which testing frameworks will you use? [ Specta / Kiwi / None ]</code>，选择测试框架，不需要的话选<code class="highlighter-rouge">None</code>；</p>
-
-<p>接着是，<code class="highlighter-rouge">Would you like to do view based testing? [ Yes / No ]</code>，是否要基于视图测试；</p>
-
-<p>最后是<code class="highlighter-rouge">What is your class prefix?</code>输入工程的前缀，所有的文件都会加上这个前缀。</p>
-
-<p>成功之后会有以下信息：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	Ace! you're ready to go!
-	We will start you off by opening your project in Xcode
-	open 'WYAnimations/Example/WYAnimations.xcworkspace'
+<div class="highlighter-rouge"><pre class="highlight"><code>	- (NSInteger)numberOfReferenceLineVerticalInLineChartView:(WYLineChartView *)chartView;
+	- (NSInteger)numberOfReferenceLineHorizontalInLineChartView:(WYLineChartView *)chartView;
 </code></pre>
 </div>
 
-<p>即工程库创建成功，🍺🍺🎆🎆🍻🍻</p>
+<p>而在属性定制方面，有如下：</p>
 
-<h3 id="section">2. 工程库目录简介</h3>
+<p>设置可滑动：</p>
 
-<p>工程库创建完之后，Xcode界面会弹出:</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>	<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">)</span> <span class="n">BOOL</span> <span class="n">scrollable</span><span class="p">;</span> <span class="c1">//横向滑动
+</span></code></pre>
+</div>
 
-<p><img src="/img/post_img/2016-10-10-Github_Cocoapods/Xcode_Template.png" alt="XcodeTemplate" /></p>
+<p>设置可缩放：</p>
 
-<p>由上往下可以看到主要的文件夹有<strong>Podspec Metadata</strong>，<strong>Example for yourLibrary</strong>，<strong>Development Pods - YourLibrary</strong>。
-	<strong>Podspec Metadata</strong>中分别有<strong>.podspec</strong>、<strong>README.md</strong>和<strong>LICENSE</strong>，<strong>.podspec</strong>为工程库的信息，详情格式google，<strong>README.md</strong>中可以对工程库做介绍，cocoapods会默认帮你生成一个介绍的模版:</p>
-
-<p><img src="/img/post_img/2016-10-10-Github_Cocoapods/README_DEFAULT.png" alt="README" /></p>
-
-<p>值得注意的是，<strong>README</strong>文件中常见的小图标，如<img src="https://img.shields.io/cocoapods/l/WYAnimations.svg?style=flat" alt="icon" /> 等，可以在<a href="http://shields.io/">这里</a>找到并定制。
-	<strong>LICENSE</strong>默认是<strong>MIT</strong>，你可以根据需要自行选择如Apache或 <a href="http://choosealicense.com/">其它的</a> 。</p>
-
-<p><strong>Example for yourLibrary</strong>便是存放Demo例子的文件夹，如同平时创建Xcode工程时一样。
-	<strong>Development Pods - YourLibrary</strong>，可以看到里面有<strong>ReplaceMe.m</strong>文件，顾名思义，就是用你的组件库内容替换它，也即是工程库文件的存放地。</p>
-
-<h3 id="section-1">3. 开发</h3>
-
-<p>在了解并创建完上述的工程之后，就可以编写你的工程库以及demo例子，如果工程和例子已经写好，那么直接复制替换到文件夹中就可以进入下一步发包了。</p>
-
-<h2 id="github">二、加入版本控制并推到Github</h2>
-
-<p>在Github上创建一个工程库，并在刚刚创建的本地工程库目录中，执行下面命令：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>$ git init  //初始化git仓库
-$ git add . //暂存所有修改
-$ git commit -m "first commit"  //提交修改
-$ git remote add origin git@github.com:YourUserName/	  YourRepository.git  //添加远程仓库
-$ git push -u origin master  //把本地内容推到Github远程仓库
+<div class="highlighter-rouge"><pre class="highlight"><code>	<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">)</span> <span class="n">BOOL</span> <span class="n">pinchable</span><span class="p">;</span>
 </code></pre>
 </div>
 
-<p>至此，你便可以随时将修改更新到Github仓库上。</p>
+<p>关于动画的类型和时间：</p>
 
-<h2 id="cocoapods-1">三、把版本的工程库发布到Cocoapods公开库或私有库</h2>
-
-<p>备注：这里主要介绍公开库，私有库👉<a href="https://guides.cocoapods.org/making/private-cocoapods">点击这里</a>，公开库英文原版介绍👉<a href="https://guides.cocoapods.org/making/getting-setup-with-trunk">点击这里</a></p>
-
-<h3 id="pod">1.创建pod帐号</h3>
-
-<p>如果你已经创建过，可以跳过这一步。</p>
-
-<p>在终端输入(pod帐号不需要密码，只是一个token存放在你的机器上)：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	$ pod trunk register 你的邮箱 '你的用户名' --description='关于你的机器的描述'
+<div class="highlighter-rouge"><pre class="highlight"><code>	<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">)</span> <span class="n">WYLineChartAnimationStyle</span> <span class="n">animationStyle</span><span class="p">;</span>
+	<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">)</span> <span class="n">CGFloat</span> <span class="n">animationDuration</span><span class="p">;</span>
 </code></pre>
 </div>
 
-<p>创建完，或者创建过之后，执行下面命令：</p>
+<p>等等这些，对图形做多方面的定制。</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>	$ pod trunk me
+<p>从分而治之的思想出发，把一个功能丰富的线型图分解为多个部件，如下图所示：</p>
+
+<p><img src="/img/post_img/2016-10-12-WYChart-Line-Architecture/Total_Architecture.jpg" alt="Total_Architecture" /></p>
+
+<p>一开始把线型图分为前景图和背景图。</p>
+
+<p>背景图相对简单，包含了背景，X轴图层，Y轴图层。</p>
+
+<p>前景图是最重要的，也是绘制难度最高的，并且动画最多的。</p>
+
+<p>其中包含水平、垂直、触碰点等参考线的图层；</p>
+
+<p>还包含最为核心的曲线图层。曲线图层又可以分为点、线以及渐变前景的绘制。</p>
+
+<p>而点的形状，可以分为三角形、正方形、圆形、五角星形，又可以分为空心与非空心，一共有八种形状。</p>
+
+<p>也就是代码中对应以下的几种类型：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>	typedef NS_ENUM(NSUInteger, WYLineChartJunctionShapeStyle) {
+
+		kWYLineChartJunctionShapeNone,
+		kWYLineChartJunctionShapeSolidCircle,
+		kWYLineChartJunctionShapeHollowCircle,
+		kWYLineChartJunctionShapeSolidSquare,
+		kWYLineChartJunctionShapeHollowSquare,
+		kWYLineChartJunctionShapeSolidRectangle,
+		kWYLineChartJunctionShapeHollowRectangle,
+		kWYLineChartJunctionShapeSolidStar,
+		kWYLineChartJunctionShapeHollowStar
+	};
 </code></pre>
 </div>
 
-<p>会出现如下信息：</p>
+<p>线的形状，可以分为折线、波浪状平滑曲线、尖峰状曲线，又可以分为实线和虚线。</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>	- Name:     GeorgeWang  //用户名
-  		- Email:    georgewang003@gmail.com  //邮箱
-  		- Since:    September 18th, 08:44  //时间
-  		- Pods:	// 创建过的开源库
-		- WYChart
-  		- Sessions:
+<p>对应以下的类型：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>	typedef NS_ENUM(NSUInteger, WYLineChartMainLineStyle) {
+
+		kWYLineChartMainStraightLine,
+		kWYLineChartMainBezierWaveLine,
+		kWYLineChartMainBezierTaperLine,
+		kWYLineChartMainNoneLine
+	};
 </code></pre>
 </div>
 
-<h3 id="section-2">2.发布开源库</h3>
+<p>以上是关于<strong>图形层级结构</strong>以及<strong>绘制</strong>的分解情况。</p>
 
-<p>⚠️ 需要注意的是，cocoapods对发布的开源库要求没有任何错误或警告信息，而且要有证书（这一点由于我们在上面的创建中已经生成证书所以不用担心）。</p>
+<h1 id="section-2">贰</h1>
+<hr />
 
-<p>确定你的工程没有问题，以及版本正确之后，你需要在你的项目目录中创建一个<strong>git分支</strong>，标注版本号，如<code class="highlighter-rouge">0.1.0</code>，这样才会被cocoapods接受。</p>
+<p><strong>此外</strong>，<strong>动画展示</strong>也是线型图的一个重点，如果没有动画，那么再好的绘制也少了一点生机，这一方面也是国内大多数app比较缺乏的。
+线型图的动画主要是线条的动画，线条动画的分类如下所示：</p>
 
-<p>最后，在工程库目录执行下述命令：</p>
+<p><img src="/img/post_img/2016-10-12-WYChart-Line-Architecture/Animation_Architecture.jpg" alt="Animation_Architecture" /></p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>	pod trunk push [NAME.podspec]
+<p>可以看到，动画一共可以分为5种，为透明度动画、线条宽带动画、绘制动画、上升动画以及弹簧动画。</p>
+
+<p>对应代码中的类型：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>	typedef NS_ENUM(NSUInteger, WYLineChartAnimationStyle) {
+
+		kWYLineChartAnimationDrawing,
+		kWYLineChartAnimationAlpha,
+		kWYLineChartAnimationWidth,
+		kWYLineChartAnimationRise,
+		kWYLineChartAnimationSpring,
+		kWYLineChartNoneAnimation
+	};
 </code></pre>
 </div>
 
-<p>如果成功的话，工程库便发布到cocoapods上了。</p>
+<p>关于动画的介绍及实现，后续的文章会做介绍，这里不多赘述。</p>
 
-<p>可以在其它工程里面的<strong>podfile</strong>尝试加入<code class="highlighter-rouge">pod YourRepository</code>，然后<code class="highlighter-rouge">pod install</code>，如果成功，即工程库发布成功。🍻🍻🎆🎆</p>
+<h1 id="section-3">叁</h1>
+<hr />
 
-<h3 id="section-3">3.发布开源库的新版本</h3>
+<p><strong>最后</strong>，<strong>交互</strong>是线型图的一个关键，让用户能够更好的互动。</p>
 
-<p>经历上述流程，我们已经把最初版本发布到cocoapods了，如果后续开发时，有新的版本发布，那么就需要更新cocoapods版本。具体流程如下</p>
+<p>考虑到移动设备屏幕一般都比较小，当数据多的时候，数据点显示会过于拥挤，因此，使用可滑动的线图，展示更多的数据就比较重要了。</p>
 
-<ul>
-  <li>更新Podspec文件中的版本号，并把修改好的文件提交到mater分支</li>
-  <li>
-    <p>在你确认发布的代码版本上打标签，标签版本号和上一步修改的一致</p>
+<p>线型图中支持可滑动与不可滑动两种，通过<code class="highlighter-rouge">scrollable</code>属性进行设置。</p>
 
-    <div class="highlighter-rouge"><pre class="highlight"><code>  git tag *version* 
-  git push origin --tags //推到github
-</code></pre>
-    </div>
-  </li>
-  <li>
-    <p>检测新版本是否通过pod验证</p>
+<p>又考虑到线型图可能会展示同一类型的多种层级的数据，于是，如何进行更好的切换等级，显得比较重要，WYChart采用了<strong>捏合手势</strong>对线图做等级切换，实际上是更改数据源并做刷新。</p>
 
-    <div class="highlighter-rouge"><pre class="highlight"><code>  pod spec lint *your_pod_name*.podspec 
-</code></pre>
-    </div>
-  </li>
-  <li>
-    <p>如果通过了，那么发布podspec文件</p>
+<p>由于给出的数据点有限，如果我们对两个数据点之间的某些数据感兴趣，那么如果获取呢？</p>
 
-    <div class="highlighter-rouge"><pre class="highlight"><code>  pod trunk push *your_pod_name*.podspec
-</code></pre>
-    </div>
-  </li>
-</ul>
+<p>经过一番思考以及参考别人的做法，一个可滑动的点会比较直观地显示两点间的数据，加上辅助标签和线，让点更佳直观；通过长按图形，进而滑动数据点来查看不同区间的数据值，交互感更强。</p>
 
-<p>至此，新版本发布完成 🍻🍻  <a href="http://sebastiandobrincu.com/blog/how-to-update-your-cocoapods-library-version">原文链接</a></p>
+<h1 id="section-4">肆</h1>
+<hr />
 
-<p><strong>后记：发布流程至此结束，如果你对开源库有兴趣，行动吧，并推广你的开源库，让更多人知道你！</strong></p>
+<p>有时候一个效果很炫的动画或者一个功能很强大的工具，开始看到的时候会让我们吃惊，感觉难度很高，不可企及；但是，当你对相关的技术点有了一定的了解，再对眼前的庞然大物进行分解（分而治之），再加以实践，你会觉得其实并没有想象中难。任何一个工具，任何一个工程，都是从一行一行代码逐渐实现出来的，所以，只要有心探索研究，没有不可能。</p>
+
+<p>总而言之，WYChart中的线型图，以分而治之的思想，从模式、绘制、动画、交互四方面入手，逐个击破完善，从而实现一个较为满意的线型图，这个过程是一个挑战，也是一个学习提高的过程，希望以上能对你有所帮助，不足的希望得到您的反馈建议。</p>
+
+<p>在下一篇我将继续介绍线型图绘制的实现。</p>
 
 
                 <hr>
@@ -352,19 +352,12 @@ $ git push -u origin master  //把本地内容推到Github远程仓库
                 <ul class="pager">
                     
                     <li class="previous">
-                        <a href="/2016/09/22/Github-%E7%9A%84-ssh-%E7%A7%98%E9%92%A5%E9%85%8D%E7%BD%AE%E4%BB%A5%E5%8F%8A%E7%99%BB%E5%BD%95%E9%97%AE%E9%A2%98/" data-toggle="tooltip" data-placement="top" title="Github 的 ssh 秘钥配置 以及登录问题">
-                        Previous<br>
-                        <span>Github 的 ssh 秘钥配置 以及登录问题</span>
-                        </a>
-                    </li>
-                    
-                    
-                    <li class="next">
                         <a href="/2016/10/12/WYChart%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%B8%80-%E6%A6%82%E8%A7%88/" data-toggle="tooltip" data-placement="top" title="WYChart介绍系列（一）概览">
-                        Next<br>
+                        Previous<br>
                         <span>WYChart介绍系列（一）概览</span>
                         </a>
                     </li>
+                    
                     
                 </ul>
 
@@ -373,9 +366,9 @@ $ git push -u origin master  //把本地内容推到Github远程仓库
                 <!-- 多说评论框 start -->
                 <div class="comment">
                     <div class="ds-thread"
-                        data-thread-key="/2016/10/10/创建自己的-Github-开源库并发布到-Cocoapods-插件库"
-                        data-title="创建自己的 Github 开源库并发布到 Cocoapods 插件库"
-                        data-url="http://blog.oneinbest.com/2016/10/10/%E5%88%9B%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84-Github-%E5%BC%80%E6%BA%90%E5%BA%93%E5%B9%B6%E5%8F%91%E5%B8%83%E5%88%B0-Cocoapods-%E6%8F%92%E4%BB%B6%E5%BA%93/" >
+                        data-thread-key="/2016/10/12/WYChart介绍系列（二）线型图的框架概览及设计思路"
+                        data-title="WYChart介绍系列（二）线型图的框架概览及设计思路"
+                        data-url="http://blog.oneinbest.com/2016/10/12/WYChart%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%BA%8C-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E7%9A%84%E6%A1%86%E6%9E%B6%E6%A6%82%E8%A7%88%E5%8F%8A%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF/" >
                     </div>
                 </div>
                 <!-- 多说评论框 end -->

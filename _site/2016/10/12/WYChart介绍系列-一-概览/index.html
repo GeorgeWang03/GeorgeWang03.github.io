@@ -10,9 +10,9 @@
     <meta name="keywords"  content="王颖, @georgewang, 王颖的博客, GeorgeWang Blog, 博客, 个人网站, 互联网, iOS, 读书, 旅行">
     <link rel="shortcut icon" href="/img/seoIcon.jpg">
 
-    <title>创建自己的 Github 开源库并发布到 Cocoapods 插件库 - 王颖的博客 | GeorgeWang Blog</title>
+    <title>WYChart介绍系列（一）概览 - 王颖的博客 | GeorgeWang Blog</title>
 
-    <link rel="canonical" href="http://blog.oneinbest.com/2016/10/10/%E5%88%9B%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84-Github-%E5%BC%80%E6%BA%90%E5%BA%93%E5%B9%B6%E5%8F%91%E5%B8%83%E5%88%B0-Cocoapods-%E6%8F%92%E4%BB%B6%E5%BA%93/">
+    <link rel="canonical" href="http://blog.oneinbest.com/2016/10/12/WYChart%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%B8%80-%E6%A6%82%E8%A7%88/">
 
     <!-- Bootstrap Core CSS -->
     <link rel="stylesheet" href="/css/bootstrap.min.css">
@@ -163,19 +163,19 @@
                 <div class="post-heading">
                     <div class="tags">
                         
-                        <a class="tag" href="/tags/#Github" title="Github">Github</a>
+                        <a class="tag" href="/tags/#WYChart" title="WYChart">WYChart</a>
                         
-                        <a class="tag" href="/tags/#Cocoapods" title="Cocoapods">Cocoapods</a>
+                        <a class="tag" href="/tags/#开源" title="开源">开源</a>
                         
-                        <a class="tag" href="/tags/#OpenSource" title="OpenSource">OpenSource</a>
+                        <a class="tag" href="/tags/#动画" title="动画">动画</a>
                         
                     </div>
-                    <h1>创建自己的 Github 开源库并发布到 Cocoapods 插件库</h1>
+                    <h1>WYChart介绍系列（一）概览</h1>
                     
                     
                     <h2 class="subheading"></h2>
                     
-                    <span class="meta">Posted by GeorgeWang on October 10, 2016</span>
+                    <span class="meta">Posted by GeorgeWang on October 12, 2016</span>
                 </div>
             </div>
         </div>
@@ -193,155 +193,29 @@
                 col-md-10 col-md-offset-1
                 post-container">
 
-				<p><strong>前记：本文用于记录开源库的创建过程备忘以及初学者参考</strong></p>
+				<p><strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong> 是我个人的第一个开源项目，发布至今收到挺多的github星星，也收到来自很多热心童鞋的建议和bug反馈，再此谢谢各位的支持。🎁🎁🍻🍻</p>
 
-<p>开发者们平时在<strong>Github</strong>查看各种功能的开源库时，是否想过开源库从何而来？开源库如何创建？使用<strong>Cocoapods</strong>时的<code class="highlighter-rouge">pod 'someLibrary'</code>从何而来？</p>
+<p>随着发布时间的推移，<strong>WYChart</strong> 受到的关注也越来越多，也让我越坚定要把它继续推进和完善的决心。不过，在开源社区，我认为，真正的贡献不仅仅局限于发布一套代码，然后就完事，一些好的关于开源代码介绍的博文也是必须的。通过开源代码结合博文介绍，最直观的是让读者更容易了解其中的技术细节和实现方式；其次，也是对自己最重要的一点，是通过写博文，我们可以重新回顾整个代码编写过程，从而起到“温故”的作用，并且在后续的开发中，即使时间再长，也可以翻出以前的博文看一看，便会一目了然。开源社区给了我的帮助是在不计其数，作为一个热衷开源的程序员，我也应该为开源社区作出自己的一份贡献。通过分享自己的代码和心得，让更多的人看到，并在交流中看到自己的缺点，从而不断地提高。所以，在接下来的时间，我会尽自己最大的努力，不断完善 <strong>WYChart</strong>，并创建其它的开源库/例子，另外，将把 <strong>WYChart</strong> 中涉及到的技术点，通过多篇博文进行介绍，也希望读者能给出您宝贵的意见和建议。</p>
 
-<p>最近发布了个人第一个严格意义上的开源库<a href="'https://github.com/GeorgeWang03/WYChart'"><strong>WYChart</strong></a>，便想着把这个过程记录下来，以便后来者参考。本文将主要从Cocoapods创建公开库来说明Github + Cocoapods开源库创建全过程。</p>
+<p><strong>WYChart在目前的版本中有线型图和扇形图，我将从下面目录分篇介绍：</strong></p>
 
-<h2 id="cocoapods">一、创建Cocoapods工程库</h2>
-
-<h3 id="desktopiospods">1. 在你存放开工程库的工程文件夹目录下（比如我的是~/Desktop/iOS/Pods)，执行下面命令：</h3>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	pod lib create MyLibrary
-</code></pre>
-</div>
-
-<p>接着会出现以下问题，即工程库为Objective-C还是Swift，<code class="highlighter-rouge">What language do you want to use?? [ Swift / ObjC ]</code>，根据你的需要输入，比如输入<code class="highlighter-rouge">Objc</code>，然后Enter；</p>
-
-<p>再接着是 <code class="highlighter-rouge">Would you like to include a demo application with your library? [ Yes / No ]</code>，也就是是否包含<strong>例子工程(demo)</strong>，需要的话选择<code class="highlighter-rouge">Yes</code>；</p>
-
-<p>然后是，<code class="highlighter-rouge">Which testing frameworks will you use? [ Specta / Kiwi / None ]</code>，选择测试框架，不需要的话选<code class="highlighter-rouge">None</code>；</p>
-
-<p>接着是，<code class="highlighter-rouge">Would you like to do view based testing? [ Yes / No ]</code>，是否要基于视图测试；</p>
-
-<p>最后是<code class="highlighter-rouge">What is your class prefix?</code>输入工程的前缀，所有的文件都会加上这个前缀。</p>
-
-<p>成功之后会有以下信息：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	Ace! you're ready to go!
-	We will start you off by opening your project in Xcode
-	open 'WYAnimations/Example/WYAnimations.xcworkspace'
-</code></pre>
-</div>
-
-<p>即工程库创建成功，🍺🍺🎆🎆🍻🍻</p>
-
-<h3 id="section">2. 工程库目录简介</h3>
-
-<p>工程库创建完之后，Xcode界面会弹出:</p>
-
-<p><img src="/img/post_img/2016-10-10-Github_Cocoapods/Xcode_Template.png" alt="XcodeTemplate" /></p>
-
-<p>由上往下可以看到主要的文件夹有<strong>Podspec Metadata</strong>，<strong>Example for yourLibrary</strong>，<strong>Development Pods - YourLibrary</strong>。
-	<strong>Podspec Metadata</strong>中分别有<strong>.podspec</strong>、<strong>README.md</strong>和<strong>LICENSE</strong>，<strong>.podspec</strong>为工程库的信息，详情格式google，<strong>README.md</strong>中可以对工程库做介绍，cocoapods会默认帮你生成一个介绍的模版:</p>
-
-<p><img src="/img/post_img/2016-10-10-Github_Cocoapods/README_DEFAULT.png" alt="README" /></p>
-
-<p>值得注意的是，<strong>README</strong>文件中常见的小图标，如<img src="https://img.shields.io/cocoapods/l/WYAnimations.svg?style=flat" alt="icon" /> 等，可以在<a href="http://shields.io/">这里</a>找到并定制。
-	<strong>LICENSE</strong>默认是<strong>MIT</strong>，你可以根据需要自行选择如Apache或 <a href="http://choosealicense.com/">其它的</a> 。</p>
-
-<p><strong>Example for yourLibrary</strong>便是存放Demo例子的文件夹，如同平时创建Xcode工程时一样。
-	<strong>Development Pods - YourLibrary</strong>，可以看到里面有<strong>ReplaceMe.m</strong>文件，顾名思义，就是用你的组件库内容替换它，也即是工程库文件的存放地。</p>
-
-<h3 id="section-1">3. 开发</h3>
-
-<p>在了解并创建完上述的工程之后，就可以编写你的工程库以及demo例子，如果工程和例子已经写好，那么直接复制替换到文件夹中就可以进入下一步发包了。</p>
-
-<h2 id="github">二、加入版本控制并推到Github</h2>
-
-<p>在Github上创建一个工程库，并在刚刚创建的本地工程库目录中，执行下面命令：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>$ git init  //初始化git仓库
-$ git add . //暂存所有修改
-$ git commit -m "first commit"  //提交修改
-$ git remote add origin git@github.com:YourUserName/	  YourRepository.git  //添加远程仓库
-$ git push -u origin master  //把本地内容推到Github远程仓库
-</code></pre>
-</div>
-
-<p>至此，你便可以随时将修改更新到Github仓库上。</p>
-
-<h2 id="cocoapods-1">三、把版本的工程库发布到Cocoapods公开库或私有库</h2>
-
-<p>备注：这里主要介绍公开库，私有库👉<a href="https://guides.cocoapods.org/making/private-cocoapods">点击这里</a>，公开库英文原版介绍👉<a href="https://guides.cocoapods.org/making/getting-setup-with-trunk">点击这里</a></p>
-
-<h3 id="pod">1.创建pod帐号</h3>
-
-<p>如果你已经创建过，可以跳过这一步。</p>
-
-<p>在终端输入(pod帐号不需要密码，只是一个token存放在你的机器上)：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	$ pod trunk register 你的邮箱 '你的用户名' --description='关于你的机器的描述'
-</code></pre>
-</div>
-
-<p>创建完，或者创建过之后，执行下面命令：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	$ pod trunk me
-</code></pre>
-</div>
-
-<p>会出现如下信息：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	- Name:     GeorgeWang  //用户名
-  		- Email:    georgewang003@gmail.com  //邮箱
-  		- Since:    September 18th, 08:44  //时间
-  		- Pods:	// 创建过的开源库
-		- WYChart
-  		- Sessions:
-</code></pre>
-</div>
-
-<h3 id="section-2">2.发布开源库</h3>
-
-<p>⚠️ 需要注意的是，cocoapods对发布的开源库要求没有任何错误或警告信息，而且要有证书（这一点由于我们在上面的创建中已经生成证书所以不用担心）。</p>
-
-<p>确定你的工程没有问题，以及版本正确之后，你需要在你的项目目录中创建一个<strong>git分支</strong>，标注版本号，如<code class="highlighter-rouge">0.1.0</code>，这样才会被cocoapods接受。</p>
-
-<p>最后，在工程库目录执行下述命令：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	pod trunk push [NAME.podspec]
-</code></pre>
-</div>
-
-<p>如果成功的话，工程库便发布到cocoapods上了。</p>
-
-<p>可以在其它工程里面的<strong>podfile</strong>尝试加入<code class="highlighter-rouge">pod YourRepository</code>，然后<code class="highlighter-rouge">pod install</code>，如果成功，即工程库发布成功。🍻🍻🎆🎆</p>
-
-<h3 id="section-3">3.发布开源库的新版本</h3>
-
-<p>经历上述流程，我们已经把最初版本发布到cocoapods了，如果后续开发时，有新的版本发布，那么就需要更新cocoapods版本。具体流程如下</p>
-
+<h3 id="section">线型图</h3>
 <ul>
-  <li>更新Podspec文件中的版本号，并把修改好的文件提交到mater分支</li>
-  <li>
-    <p>在你确认发布的代码版本上打标签，标签版本号和上一步修改的一致</p>
-
-    <div class="highlighter-rouge"><pre class="highlight"><code>  git tag *version* 
-  git push origin --tags //推到github
-</code></pre>
-    </div>
-  </li>
-  <li>
-    <p>检测新版本是否通过pod验证</p>
-
-    <div class="highlighter-rouge"><pre class="highlight"><code>  pod spec lint *your_pod_name*.podspec 
-</code></pre>
-    </div>
-  </li>
-  <li>
-    <p>如果通过了，那么发布podspec文件</p>
-
-    <div class="highlighter-rouge"><pre class="highlight"><code>  pod trunk push *your_pod_name*.podspec
-</code></pre>
-    </div>
-  </li>
+  <li><a href="http://blog.oneinbest.com/2016/10/12/WYChart介绍系列-二-线型图的框架概览及设计思路">框架概览／设计思路</a></li>
+  <li>绘制：线条的绘制思路</li>
+  <li>动画：实现方式（draw,spring…)</li>
+  <li>交互：触碰点实现</li>
 </ul>
 
-<p>至此，新版本发布完成 🍻🍻  <a href="http://sebastiandobrincu.com/blog/how-to-update-your-cocoapods-library-version">原文链接</a></p>
+<h3 id="section-1">扇形图</h3>
+<ul>
+  <li>框架概览／设计思路</li>
+  <li>绘制 normal,gear</li>
+  <li>动画（AllSpreading,Stretch,Scale…）</li>
+  <li>交互（Extract,Pull,rotate…)</li>
+</ul>
 
-<p><strong>后记：发布流程至此结束，如果你对开源库有兴趣，行动吧，并推广你的开源库，让更多人知道你！</strong></p>
+<p><strong>希望以上内容能帮到你，不足之处，希望能得到你的建议和帮助。</strong></p>
 
 
                 <hr>
@@ -352,17 +226,17 @@ $ git push -u origin master  //把本地内容推到Github远程仓库
                 <ul class="pager">
                     
                     <li class="previous">
-                        <a href="/2016/09/22/Github-%E7%9A%84-ssh-%E7%A7%98%E9%92%A5%E9%85%8D%E7%BD%AE%E4%BB%A5%E5%8F%8A%E7%99%BB%E5%BD%95%E9%97%AE%E9%A2%98/" data-toggle="tooltip" data-placement="top" title="Github 的 ssh 秘钥配置 以及登录问题">
+                        <a href="/2016/10/10/%E5%88%9B%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84-Github-%E5%BC%80%E6%BA%90%E5%BA%93%E5%B9%B6%E5%8F%91%E5%B8%83%E5%88%B0-Cocoapods-%E6%8F%92%E4%BB%B6%E5%BA%93/" data-toggle="tooltip" data-placement="top" title="创建自己的 Github 开源库并发布到 Cocoapods 插件库">
                         Previous<br>
-                        <span>Github 的 ssh 秘钥配置 以及登录问题</span>
+                        <span>创建自己的 Github 开源库并发布到 Cocoapods 插件库</span>
                         </a>
                     </li>
                     
                     
                     <li class="next">
-                        <a href="/2016/10/12/WYChart%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%B8%80-%E6%A6%82%E8%A7%88/" data-toggle="tooltip" data-placement="top" title="WYChart介绍系列（一）概览">
+                        <a href="/2016/10/12/WYChart%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%BA%8C-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E7%9A%84%E6%A1%86%E6%9E%B6%E6%A6%82%E8%A7%88%E5%8F%8A%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF/" data-toggle="tooltip" data-placement="top" title="WYChart介绍系列（二）线型图的框架概览及设计思路">
                         Next<br>
-                        <span>WYChart介绍系列（一）概览</span>
+                        <span>WYChart介绍系列（二）线型图的框架概览及设计思路</span>
                         </a>
                     </li>
                     
@@ -373,9 +247,9 @@ $ git push -u origin master  //把本地内容推到Github远程仓库
                 <!-- 多说评论框 start -->
                 <div class="comment">
                     <div class="ds-thread"
-                        data-thread-key="/2016/10/10/创建自己的-Github-开源库并发布到-Cocoapods-插件库"
-                        data-title="创建自己的 Github 开源库并发布到 Cocoapods 插件库"
-                        data-url="http://blog.oneinbest.com/2016/10/10/%E5%88%9B%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84-Github-%E5%BC%80%E6%BA%90%E5%BA%93%E5%B9%B6%E5%8F%91%E5%B8%83%E5%88%B0-Cocoapods-%E6%8F%92%E4%BB%B6%E5%BA%93/" >
+                        data-thread-key="/2016/10/12/WYChart介绍系列（一）概览"
+                        data-title="WYChart介绍系列（一）概览"
+                        data-url="http://blog.oneinbest.com/2016/10/12/WYChart%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%B8%80-%E6%A6%82%E8%A7%88/" >
                     </div>
                 </div>
                 <!-- 多说评论框 end -->

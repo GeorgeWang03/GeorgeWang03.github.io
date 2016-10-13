@@ -5,9 +5,213 @@
     <description>iOS、创作与设计 | 王颖，iOS Engineer | 这里是王颖的个人博客，我们在这里分享技术，分享见闻，分享人生</description>
     <link>http://blog.oneinbest.com/</link>
     <atom:link href="http://blog.oneinbest.com/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Mon, 10 Oct 2016 18:34:46 +0800</pubDate>
-    <lastBuildDate>Mon, 10 Oct 2016 18:34:46 +0800</lastBuildDate>
+    <pubDate>Thu, 13 Oct 2016 11:34:33 +0800</pubDate>
+    <lastBuildDate>Thu, 13 Oct 2016 11:34:33 +0800</lastBuildDate>
     <generator>Jekyll v3.2.1</generator>
+    
+      <item>
+        <title>WYChart介绍系列（二）线型图的框架概览及设计思路</title>
+        <description>&lt;h1 id=&quot;section&quot;&gt;零&lt;/h1&gt;
+&lt;hr /&gt;
+
+&lt;p&gt;一开始有做&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt;的想法，是公司的项目需要，在做了一段时间之后，刚好手头工作不多，于是萌生一个念头，试着自己写一个图表库，于是，WYChart便开始了。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt; 里面包含了不少的技术点，动画的，绘制的，交互的，之所以在这之前没有做自己的图表库，原因之一是上文提到的公司项目需要才想到，另外一个很重要的原因是，没有相关方面的技术积累，也就是对动画，绘制，交互的一个全面的了解。恰巧在这之前，我看了《iOS Core Animation Tutorial》这本书以及一些优秀的开源库，动画库的源码，例如&lt;a href=&quot;https://github.com/Boris-Em/BEMSimpleLineGraph&quot;&gt;&lt;strong&gt;BEMSimpleLineGraph&lt;/strong&gt;&lt;/a&gt;、&lt;a href=&quot;https://github.com/anaglik/ANDLineChartView&quot;&gt;&lt;strong&gt;ANDLineChartView&lt;/strong&gt;&lt;/a&gt; 等，因此也对动画和绘制以及交互又了一个整体上的了解，进而全面的考虑各种实现方式的优缺点，以及采用更多的动画效果，交互方式。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt; 中，第一个做的是线型图，根据自己的判断，一个线型图，既要考虑内容的丰富、也要考虑用户的使用方便，又要考虑后续开发的可扩展性，难度不小，于是决定分而治之，逐个击破。&lt;/p&gt;
+
+&lt;h1 id=&quot;section-1&quot;&gt;壹&lt;/h1&gt;
+&lt;hr /&gt;
+
+&lt;p&gt;为了用户使用方便，降低学习成本，整个图库采用Cocoa典型的delegate/datasource模式，也就是UITableView/UICollectionView的模式，并结合属性设置，让图形的定制性更好。&lt;/p&gt;
+
+&lt;p&gt;例如，以下两个代理方法(required)，可以自己定制X轴和Y轴的标签数目&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	- (NSInteger)numberOfLabelOnXAxisInLineChartView:(WYLineChartView *)chartView;
+	- (NSInteger)numberOfLabelOnYAxisInLineChartView:(WYLineChartView *)chartView;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;有如，以下两个选择性（optional）代理方法，可以自己定制水平和垂直方向参考线的数目&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	- (NSInteger)numberOfReferenceLineVerticalInLineChartView:(WYLineChartView *)chartView;
+	- (NSInteger)numberOfReferenceLineHorizontalInLineChartView:(WYLineChartView *)chartView;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;而在属性定制方面，有如下：&lt;/p&gt;
+
+&lt;p&gt;设置可滑动：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	&lt;span class=&quot;k&quot;&gt;@property&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nonatomic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;BOOL&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;scrollable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;//横向滑动
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;设置可缩放：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	&lt;span class=&quot;k&quot;&gt;@property&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nonatomic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;BOOL&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pinchable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;关于动画的类型和时间：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	&lt;span class=&quot;k&quot;&gt;@property&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nonatomic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;WYLineChartAnimationStyle&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;animationStyle&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;k&quot;&gt;@property&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nonatomic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CGFloat&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;animationDuration&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;等等这些，对图形做多方面的定制。&lt;/p&gt;
+
+&lt;p&gt;从分而治之的思想出发，把一个功能丰富的线型图分解为多个部件，如下图所示：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-12-WYChart-Line-Architecture/Total_Architecture.jpg&quot; alt=&quot;Total_Architecture&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;一开始把线型图分为前景图和背景图。&lt;/p&gt;
+
+&lt;p&gt;背景图相对简单，包含了背景，X轴图层，Y轴图层。&lt;/p&gt;
+
+&lt;p&gt;前景图是最重要的，也是绘制难度最高的，并且动画最多的。&lt;/p&gt;
+
+&lt;p&gt;其中包含水平、垂直、触碰点等参考线的图层；&lt;/p&gt;
+
+&lt;p&gt;还包含最为核心的曲线图层。曲线图层又可以分为点、线以及渐变前景的绘制。&lt;/p&gt;
+
+&lt;p&gt;而点的形状，可以分为三角形、正方形、圆形、五角星形，又可以分为空心与非空心，一共有八种形状。&lt;/p&gt;
+
+&lt;p&gt;也就是代码中对应以下的几种类型：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	typedef NS_ENUM(NSUInteger, WYLineChartJunctionShapeStyle) {
+
+		kWYLineChartJunctionShapeNone,
+		kWYLineChartJunctionShapeSolidCircle,
+		kWYLineChartJunctionShapeHollowCircle,
+		kWYLineChartJunctionShapeSolidSquare,
+		kWYLineChartJunctionShapeHollowSquare,
+		kWYLineChartJunctionShapeSolidRectangle,
+		kWYLineChartJunctionShapeHollowRectangle,
+		kWYLineChartJunctionShapeSolidStar,
+		kWYLineChartJunctionShapeHollowStar
+	};
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;线的形状，可以分为折线、波浪状平滑曲线、尖峰状曲线，又可以分为实线和虚线。&lt;/p&gt;
+
+&lt;p&gt;对应以下的类型：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	typedef NS_ENUM(NSUInteger, WYLineChartMainLineStyle) {
+
+		kWYLineChartMainStraightLine,
+		kWYLineChartMainBezierWaveLine,
+		kWYLineChartMainBezierTaperLine,
+		kWYLineChartMainNoneLine
+	};
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;以上是关于&lt;strong&gt;图形层级结构&lt;/strong&gt;以及&lt;strong&gt;绘制&lt;/strong&gt;的分解情况。&lt;/p&gt;
+
+&lt;h1 id=&quot;section-2&quot;&gt;贰&lt;/h1&gt;
+&lt;hr /&gt;
+
+&lt;p&gt;&lt;strong&gt;此外&lt;/strong&gt;，&lt;strong&gt;动画展示&lt;/strong&gt;也是线型图的一个重点，如果没有动画，那么再好的绘制也少了一点生机，这一方面也是国内大多数app比较缺乏的。
+线型图的动画主要是线条的动画，线条动画的分类如下所示：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-12-WYChart-Line-Architecture/Animation_Architecture.jpg&quot; alt=&quot;Animation_Architecture&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;可以看到，动画一共可以分为5种，为透明度动画、线条宽带动画、绘制动画、上升动画以及弹簧动画。&lt;/p&gt;
+
+&lt;p&gt;对应代码中的类型：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	typedef NS_ENUM(NSUInteger, WYLineChartAnimationStyle) {
+
+		kWYLineChartAnimationDrawing,
+		kWYLineChartAnimationAlpha,
+		kWYLineChartAnimationWidth,
+		kWYLineChartAnimationRise,
+		kWYLineChartAnimationSpring,
+		kWYLineChartNoneAnimation
+	};
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;关于动画的介绍及实现，后续的文章会做介绍，这里不多赘述。&lt;/p&gt;
+
+&lt;h1 id=&quot;section-3&quot;&gt;叁&lt;/h1&gt;
+&lt;hr /&gt;
+
+&lt;p&gt;&lt;strong&gt;最后&lt;/strong&gt;，&lt;strong&gt;交互&lt;/strong&gt;是线型图的一个关键，让用户能够更好的互动。&lt;/p&gt;
+
+&lt;p&gt;考虑到移动设备屏幕一般都比较小，当数据多的时候，数据点显示会过于拥挤，因此，使用可滑动的线图，展示更多的数据就比较重要了。&lt;/p&gt;
+
+&lt;p&gt;线型图中支持可滑动与不可滑动两种，通过&lt;code class=&quot;highlighter-rouge&quot;&gt;scrollable&lt;/code&gt;属性进行设置。&lt;/p&gt;
+
+&lt;p&gt;又考虑到线型图可能会展示同一类型的多种层级的数据，于是，如何进行更好的切换等级，显得比较重要，WYChart采用了&lt;strong&gt;捏合手势&lt;/strong&gt;对线图做等级切换，实际上是更改数据源并做刷新。&lt;/p&gt;
+
+&lt;p&gt;由于给出的数据点有限，如果我们对两个数据点之间的某些数据感兴趣，那么如果获取呢？&lt;/p&gt;
+
+&lt;p&gt;经过一番思考以及参考别人的做法，一个可滑动的点会比较直观地显示两点间的数据，加上辅助标签和线，让点更佳直观；通过长按图形，进而滑动数据点来查看不同区间的数据值，交互感更强。&lt;/p&gt;
+
+&lt;h1 id=&quot;section-4&quot;&gt;肆&lt;/h1&gt;
+&lt;hr /&gt;
+
+&lt;p&gt;有时候一个效果很炫的动画或者一个功能很强大的工具，开始看到的时候会让我们吃惊，感觉难度很高，不可企及；但是，当你对相关的技术点有了一定的了解，再对眼前的庞然大物进行分解（分而治之），再加以实践，你会觉得其实并没有想象中难。任何一个工具，任何一个工程，都是从一行一行代码逐渐实现出来的，所以，只要有心探索研究，没有不可能。&lt;/p&gt;
+
+&lt;p&gt;总而言之，WYChart中的线型图，以分而治之的思想，从模式、绘制、动画、交互四方面入手，逐个击破完善，从而实现一个较为满意的线型图，这个过程是一个挑战，也是一个学习提高的过程，希望以上能对你有所帮助，不足的希望得到您的反馈建议。&lt;/p&gt;
+
+&lt;p&gt;在下一篇我将继续介绍线型图绘制的实现。&lt;/p&gt;
+</description>
+        <pubDate>Wed, 12 Oct 2016 19:31:00 +0800</pubDate>
+        <link>http://blog.oneinbest.com/2016/10/12/WYChart%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%BA%8C-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E7%9A%84%E6%A1%86%E6%9E%B6%E6%A6%82%E8%A7%88%E5%8F%8A%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF/</link>
+        <guid isPermaLink="true">http://blog.oneinbest.com/2016/10/12/WYChart%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%BA%8C-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E7%9A%84%E6%A1%86%E6%9E%B6%E6%A6%82%E8%A7%88%E5%8F%8A%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF/</guid>
+        
+        <category>WYChart</category>
+        
+        <category>开源</category>
+        
+        <category>动画</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>WYChart介绍系列（一）概览</title>
+        <description>&lt;p&gt;&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt; 是我个人的第一个开源项目，发布至今收到挺多的github星星，也收到来自很多热心童鞋的建议和bug反馈，再此谢谢各位的支持。🎁🎁🍻🍻&lt;/p&gt;
+
+&lt;p&gt;随着发布时间的推移，&lt;strong&gt;WYChart&lt;/strong&gt; 受到的关注也越来越多，也让我越坚定要把它继续推进和完善的决心。不过，在开源社区，我认为，真正的贡献不仅仅局限于发布一套代码，然后就完事，一些好的关于开源代码介绍的博文也是必须的。通过开源代码结合博文介绍，最直观的是让读者更容易了解其中的技术细节和实现方式；其次，也是对自己最重要的一点，是通过写博文，我们可以重新回顾整个代码编写过程，从而起到“温故”的作用，并且在后续的开发中，即使时间再长，也可以翻出以前的博文看一看，便会一目了然。开源社区给了我的帮助是在不计其数，作为一个热衷开源的程序员，我也应该为开源社区作出自己的一份贡献。通过分享自己的代码和心得，让更多的人看到，并在交流中看到自己的缺点，从而不断地提高。所以，在接下来的时间，我会尽自己最大的努力，不断完善 &lt;strong&gt;WYChart&lt;/strong&gt;，并创建其它的开源库/例子，另外，将把 &lt;strong&gt;WYChart&lt;/strong&gt; 中涉及到的技术点，通过多篇博文进行介绍，也希望读者能给出您宝贵的意见和建议。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;WYChart在目前的版本中有线型图和扇形图，我将从下面目录分篇介绍：&lt;/strong&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;section&quot;&gt;线型图&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;http://blog.oneinbest.com/2016/10/12/WYChart介绍系列-二-线型图的框架概览及设计思路&quot;&gt;框架概览／设计思路&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;绘制：线条的绘制思路&lt;/li&gt;
+  &lt;li&gt;动画：实现方式（draw,spring…)&lt;/li&gt;
+  &lt;li&gt;交互：触碰点实现&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;section-1&quot;&gt;扇形图&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;框架概览／设计思路&lt;/li&gt;
+  &lt;li&gt;绘制 normal,gear&lt;/li&gt;
+  &lt;li&gt;动画（AllSpreading,Stretch,Scale…）&lt;/li&gt;
+  &lt;li&gt;交互（Extract,Pull,rotate…)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;希望以上内容能帮到你，不足之处，希望能得到你的建议和帮助。&lt;/strong&gt;&lt;/p&gt;
+</description>
+        <pubDate>Wed, 12 Oct 2016 00:46:00 +0800</pubDate>
+        <link>http://blog.oneinbest.com/2016/10/12/WYChart%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%B8%80-%E6%A6%82%E8%A7%88/</link>
+        <guid isPermaLink="true">http://blog.oneinbest.com/2016/10/12/WYChart%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%B8%80-%E6%A6%82%E8%A7%88/</guid>
+        
+        <category>WYChart</category>
+        
+        <category>开源</category>
+        
+        <category>动画</category>
+        
+        
+      </item>
     
       <item>
         <title>创建自己的 Github 开源库并发布到 Cocoapods 插件库</title>
@@ -126,6 +330,38 @@ $ git push -u origin master  //把本地内容推到Github远程仓库
 &lt;p&gt;如果成功的话，工程库便发布到cocoapods上了。&lt;/p&gt;
 
 &lt;p&gt;可以在其它工程里面的&lt;strong&gt;podfile&lt;/strong&gt;尝试加入&lt;code class=&quot;highlighter-rouge&quot;&gt;pod YourRepository&lt;/code&gt;，然后&lt;code class=&quot;highlighter-rouge&quot;&gt;pod install&lt;/code&gt;，如果成功，即工程库发布成功。🍻🍻🎆🎆&lt;/p&gt;
+
+&lt;h3 id=&quot;section-3&quot;&gt;3.发布开源库的新版本&lt;/h3&gt;
+
+&lt;p&gt;经历上述流程，我们已经把最初版本发布到cocoapods了，如果后续开发时，有新的版本发布，那么就需要更新cocoapods版本。具体流程如下&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;更新Podspec文件中的版本号，并把修改好的文件提交到mater分支&lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;在你确认发布的代码版本上打标签，标签版本号和上一步修改的一致&lt;/p&gt;
+
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  git tag *version* 
+  git push origin --tags //推到github
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;检测新版本是否通过pod验证&lt;/p&gt;
+
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  pod spec lint *your_pod_name*.podspec 
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;如果通过了，那么发布podspec文件&lt;/p&gt;
+
+    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  pod trunk push *your_pod_name*.podspec
+&lt;/code&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;至此，新版本发布完成 🍻🍻  &lt;a href=&quot;http://sebastiandobrincu.com/blog/how-to-update-your-cocoapods-library-version&quot;&gt;原文链接&lt;/a&gt;&lt;/p&gt;
 
 &lt;p&gt;&lt;strong&gt;后记：发布流程至此结束，如果你对开源库有兴趣，行动吧，并推广你的开源库，让更多人知道你！&lt;/strong&gt;&lt;/p&gt;
 </description>
