@@ -252,36 +252,16 @@
 
 
 
-
-<!-- 多说评论框 start -->
-<div class="comment">
-    <div class="ds-thread"
-    
-        data-thread-key="GeorgeWangblog/about"
-    
-
-    data-title="About"
-    data-url="http://blog.oneinbest.com/about/"></div>
-</div>
-<!-- 多说评论框 end -->
-
-<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
-<script type="text/javascript">
-    // dynamic User hacking by Hux
-    var _user = 'GeorgeWangblog';
-
-    // duoshuo comment query.
-    var duoshuoQuery = {short_name: _user };
-    (function() {
-        var ds = document.createElement('script');
-        ds.type = 'text/javascript';ds.async = true;
-        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
-        ds.charset = 'UTF-8';
-        (document.getElementsByTagName('head')[0]
-         || document.getElementsByTagName('body')[0]).appendChild(ds);
-    })();
+<div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+<script>
+  var cloudTieConfig = {
+    url: "http://blog.oneinbest.com/about/", 
+    sourceId: "http://blog.oneinbest.com/about/",
+    productKey: "1ed9a4bea780408289b61120e47c3586",
+    target: "cloud-tie-wrapper"
+  };
 </script>
-<!-- 多说公共JS代码 end -->
+<script src="https://img1.ws.126.net/f2e/tie/yun/sdk/loader.js"></script>
 
 
 

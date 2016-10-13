@@ -108,17 +108,17 @@ layout: default
                 </ul>
 
 
-                {% if site.duoshuo_username %}
-                <!-- 多说评论框 start -->
-                <div class="comment">
-                    <div class="ds-thread"
-                        data-thread-key="{{page.id}}"
-                        data-title="{{page.title}}"
-                        data-url="{{site.url}}{{site.baseurl}}{{page.url}}" >
-                    </div>
-                </div>
-                <!-- 多说评论框 end -->
-                {% endif %}
+<div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+<script>
+  var cloudTieConfig = {
+    url: "{{site.url}}{{page.url}}", 
+    sourceId: "{{site.url}}{{page.url}}",
+    productKey: "1ed9a4bea780408289b61120e47c3586",
+    target: "cloud-tie-wrapper"
+  };
+</script>
+<script src="https://img1.ws.126.net/f2e/tie/yun/sdk/loader.js"></script>
+
 
                 {% if site.disqus_username %}
                 <!-- disqus 评论框 start -->
