@@ -1,0 +1,202 @@
+---
+layout:     post
+title:      "WYChart介绍系列（四）线型图动画的实现"
+date:       2016-10-15 16:46:00
+author:     "GeorgeWang"
+header-img: "img/post-bg-miui6.jpg"
+tags:
+    - WYChart
+    - 开源
+    - 动画
+---
+
+在前面的文章中有提到WYChart中线型图使用的是CoreAnimation框架，动画的制作也是使用里面一系列的效果。
+
+本文将分为下面几个部分做讲解：
+
+* CoreAnimation的动画类CABasicAnimation及其子类
+* WYChart中线型图采用的动画类型
+* CADisplayLink+UIViewAnimation+CALayer的动画模式
+
+那么，开始吧 👇👇
+
+### CoreAnimation的动画类CABasicAnimation及相关类
+
+[官方文档]()对CABasicAnimation的介绍是这样的：
+
+	CABasicAnimation provides basic, single-keyframe animation capabilities for a layer property. 
+	
+也就是，CABasicAnimation为Layer的属性提供基础，简单的关键帧动画。至于哪些属性能做动画，在各个Layer的头文件中有声明，如果是`animatable`的，就是可以做动画的。
+
+CABasicAnimation有几个核心的属性：duration,fromValue,toValue以及keyPath，后者是通过工厂方法`animationWithKeyPath:`初始化，也是用于动画的属性。前三个属性，duration用于定义动画的时长，fromValue和toValue分别是属性开始的值和结束的值，它们都只接受对象类型的变量，也就是如果是数值类型，需要先转化为NSNumber对象类型。比如，现在对一个图层做由透明到不透明的动画，应该这样做：
+
+	CABasicAnimation  *animation = [CABasicAnimation animationWithKeyPath:@"opacity"];
+	animation.duration = 1.0;
+	animation.fromValue = @(0.0);
+	animation.toValue = @(1.0);
+	[layer addAnimation:animation forKey:@"opacity"];
+
+在`CAAnimation.h`头文件中，可以看到**CABasicAnimation**是继承自**CAPropertyAnimation**，后者是继承自**CAAnimation**，关于**CAPropertyAnimation**和**CAAnimation**这里不展开介绍，有兴趣的自行Google。
+重点在于，从头文件中我们可以看到除了**CABasicAnimation**，还有**CASpringAnimation**、**CAKeyframeAnimation**以及**CATransition**。
+
+**CASpringAnimation**继承自CABasicAnimation，用于实现弹簧动画；它有几个属性用于设置弹簧的效果，比如用于设置重量的`mass`，越大弹簧的压缩越严重；又如用于设置劲度系数的`stiffness`，系数越大，动画开始时产品的力气越大，速度越快；还有阻尼系数`damping`，越大弹簧动画停止越快；最后是初始速度`initialVelocity`，表示一开始的速度。值得注意的是，有一个`readonly`的属性`settlingDuration`，用于估算动画的时间。为什么需要这个估算时间，因为如果将前面提到的`duration`属性设置小于这个估算时间，那动画会在弹簧停止之前便结束，这样看起来很奇怪，因此需要这个估算时间。不过，实践证明，这个估算时间也不怎么靠谱，所以，实际操作时还是要自己调试着。
+
+CAKeyframeAnimation继承自CAPropertyAnimation，用于关键帧动画；他有一个必选属性`values`，表示`keypath`的变化过程；此外，有一些可选的属性。`path`可选属性，一般用于轨迹动画，如旋转、抛物线等运动，当它不为空时，`values`属性被覆盖；`keyTimes`属性声明在`values`中的值在哪个时间起作用；还有诸如`timingFunctions`、`calculationMode`和`rotationMode`等属性，限于篇幅，这里不展开细讲。在后面的博文中，会开一篇细讲这几个动画。
+
+CATransition继承自CAAnimation，用于自定义页面跳转。在WYChart中我们不会用到，故也不展开讲，只是说明在CAAnimation族中有这个类。
+
+以上是CoreAnimation的动画类CABasicAnimation及相关类的介绍，应该说CABasicAnimation是基础，也是用得最多的，CASpringAnimation和CAKeyframeAnimation可以做出一些比较特别的动画。
+
+### WYChart中线型图采用的动画类型
+
+在WYChart的线型图中，目前一共有五种动画，分别如下：
+
+	kWYLineChartAnimationDrawing // 绘制动画
+	kWYLineChartAnimationAlpha   // 透明度动画
+	kWYLineChartAnimationWidth   // 宽度渐变动画
+	kWYLineChartAnimationRise    // 上升动画
+	kWYLineChartAnimationSpring  // 弹簧动画
+	
+前四个动画都相对比较简单，只要使用**CABasicAnimation**就可以实现。例如绘制动画，实现如下：
+
+	CABasicAnimation  *animation = [CABasicAnimation animationWithKeyPath:@"strokeEnd"];
+	animation.duration = _animationDuration;
+	animation.fromValue = @(0.0);
+	animation.toValue = @(1.0);
+	[lineLayer addAnimation:animation forKey:@"strokeEnd"];
+	
+使用`strokeEnd`属性做绘制动画，效果如下：
+![Animation_Drawing](/img/post_img/2016-10-13-WYChart-S/LineAnimation_Drawing.gif)
+
+
+不过这四个动画里面，`kWYLineChartAnimationRise`还要对**path**做一下处理。我们要实现线条由下往上升，于是需要两个预先定义好的**path**，一个是最终状态，也就是最初构建的那个，另一个是初始状态，其每个点的Y值都比初始的值小7个单位的距离在代码中我们这样实现：
+
+	[linePath addQuadCurveToPoint:pathSegment.endPoint.point controlPoint:pathSegment.controlPoint.point];
+	[linePathLower addQuadCurveToPoint:[self pointBelowPoint:pathSegment.endPoint.point forDistance:DEFAULT_RISE_HEIGHT] controlPoint:[self pointBelowPoint:pathSegment.controlPoint.point forDistance:DEFAULT_RISE_HEIGHT]];
+	
+`linePath`是最终状态，`linePathLower`为初始状态，`DEFAULT_RISE_HEIGHT `为上升高度。
+
+以上都是**CABasicAnimation**的简单应用，真正重要的是接下来要讲的 👇👇
+
+### CADisplayLink+UIViewAnimation+CALayer的动画模式
+
+在上文中还少了`kWYLineChartAnimationSpring`动画没讲，因为涉及到的内容比较复杂，在这里细讲。
+
+我们要实现的效果是：
+
+![Animation_Drawing](/img/post_img/2016-10-13-WYChart-S/LineAnimation_Spring.gif)
+
+你可能会想到使用`CASpringAnimation`结合`path`属性来实现，没错，最初我也是采用这种做法，但不幸的是，其实际效果和我们的想去甚远，甚至扭曲严重。因此这种做法行不通，那是否还有其他途径？ 必需的！😜
+
+那就是CADisplayLink+UIViewAnimation+CALayer的动画模式，下面我们先对这几个概念做个介绍。
+
+#### CADisplayLink
+
+[官方文档](https://developer.apple.com/reference/quartzcore/cadisplaylink)对**CADisplayLink**的介绍如下：
+
+	A CADisplayLink object is a timer object that allows your application to synchronize its drawing to the refresh rate of the display.
+	
+也就是**CADisplayLink可以让你的绘制和屏幕刷新频率同步**。
+
+用法如下：
+	
+	CADisplayLink  *displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(handleScreenUpdate)];
+	[_displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
+	
+这样子，假如屏幕的刷新频率是60pf/s，那么每秒`handleScreenUpdate`会被调用60次，我们可以在里面做视图的更新操作。不过要注意的是，更新操作耗费时间不能超过1/60s，否则会掉帧。如果不想调用太频繁，可以设置`frameInterval`的值，比如每秒只调用30次，那么`frameInterval = 30`。
+
+有些读者可能会想到另一个相似的工具`NSTimer`，不过它们还是有很大区别的，区别如下：
+
+* CADisplayLink是和屏幕刷新频率一致的，而NSTimer则不然，只是提供一个循环调用的功能，遇到NSRunLoop阻塞时还会延迟
+* NSTimer主要体现在控制循环次数上，而CADisplayLink则主要强调与屏幕刷新相关
+
+因此，对与实时性要求高的地方，使用CADisplayLink比较适合，比如我们要实现的动画。
+
+
+#### UIViewAnimation
+
+相信大家平时也使用过UIView的animation方法做过一些简单的动画，比如：
+
+	[UIView animateWithDuration:_animationDuration + 0.5
+                              delay:0.0
+             usingSpringWithDamping:0.15
+              initialSpringVelocity:1.40
+                            options:0
+                         animations:^{
+                             ...
+                         } completion:^(BOOL finished) {
+                             ...
+                         }];
+                         
+做弹簧动画，参数和我们上文讲到的**CASpringAnimation**有点相似。
+
+#### CALayer
+
+至于CALayer，由于上一篇文章介绍过，不赘述。但我们这里要介绍的，确切说应该是包含在UIView**图层树**中的Layer。关于图层树，在我的[另一篇文章]()有介绍过。这里再简单介绍一下，大概就是UIView运行时在系统内部的Layer图层树分为三种，分别为模型层、展示层和渲染层，模型层就是持有view显示属性的view.layer；而展示层则是在动画执行时实时反映当前图层状态，为view.layer.presentationLayer；渲染层是私有的，用于将模型层异步渲染成为表示层。而WYChart中用得最多的莫过于展示层了，比如我们想获得动画执行时的view的位置，如果简单的通过view.frame.origin或者view.layer.position，那么获取到的结果并不是我们想要的，只能通过展示层view.layer.presentation.position才能获得临时位置，这一点在下文比较重要⚠️⚠️。上文提到的模式，确切的说应该是**CADisplayLink+UIViewAnimation+presentationLayer的动画模式**。
+
+---
+
+上面介绍了这么多，其实都是为我们接下来要介绍的模式，**CADisplayLink+UIViewAnimation+CALayer的动画模式**，所服务的。
+
+上文提到，我们要实现的线型图弹簧效果如下，但是用CASpringAnimation效果却相去甚远。
+
+![Animation_Drawing](/img/post_img/2016-10-13-WYChart-S/LineAnimation_Spring.gif)
+
+确保你对上面概念了解清楚。
+这时候我们就可以结合上面提到的这种模式来实现。
+
+手动实现一个线型图的弹簧动画，需要以下几个步骤：
+
+* 获取一系列和屏幕刷新频率相近的**弹簧参数**
+* 根据弹簧参数构建一系列的贝塞尔曲线
+* 在CADisplayLink每一帧刷新时刷新线型图曲线
+
+
+要获取一系列和屏幕刷新频率相近的**弹簧参数**，有两种方式，一种是自己模拟，也就是通过某个函数，类似的比如电波，但是经过一番搜索和对比，这个途径并不直观，有兴趣的童鞋可以自己探索一番；另一种方式，就是就近取材，UIViewAnimation+presentationLayer.position。
+
+做法是，1.定义N个透明的view，让它们做springAnimation
+
+	[UIView animateWithDuration:_animationDuration + 0.5
+                              delay:0.0
+             usingSpringWithDamping:0.15
+              initialSpringVelocity:1.40
+                            options:0//UIViewAnimationOptionCurveEaseOut
+                         animations:^{
+                             [_animationControlPoints enumerateObjectsUsingBlock:^(UIView *view, NSUInteger idx, BOOL * _Nonnull stop) {
+                             	// 遍历所有模拟点视图，做动画
+                                 view.center = CGPointMake(view.center.x, ((WYLineChartPoint *)_parentView.points[idx]).y);
+                             }];
+                         } completion:^(BOOL finished) {
+                             if (finished) {
+                                 _displayLink.paused = true;
+                                 self.userInteractionEnabled = true;
+                             }
+                         }];
+
+2.开启CADisplayLink，在执行函数中通过view.layer.presentationLayer.position.x取得view与原点的偏离值
+3.然后对所有给出的数据点的y值与偏离值做运算，得出新的y值
+
+	[_parentView.points enumerateObjectsUsingBlock:^(WYLineChartPoint *point, NSUInteger idx, BOOL * _Nonnull stop) {
+        UIView *view = _animationControlPoints[idx];
+        point.x = [view wy_centerForPresentationLayer:true].x;// 通过presentationLayer.position获得实时位置
+        point.y = [view wy_centerForPresentationLayer:true].y;// 通过presentationLayer.position获得实时位置
+    }];
+    
+4.重新构建贝塞尔曲线应用到线型图上，并完成一帧的刷新
+    
+    UIBezierPath *linePath = [self currentLinePathForWave];
+    _lineShapeLayer.path = linePath.CGPath;
+    
+这便是我们的弹簧动画手动实现过程  🍻🍻
+
+## 总结
+
+本文我们从CABasicAnimation及其相关类介绍开始，大致讲述了CoreAniamtion的动画类型及简单用法，接着介绍了WYChart中线型图的动画类型及部分简单实现方式，最后介绍了最重要的**CADisplayLink+UIViewAnimation+CALayer的动画模式**。本文介绍到的内容，应该是每个iOS开发者都要了解的，因为很多UI层的内容都和它们息息相关。例如CADisplayLink+presentationLayer的模式，还可以结合UIDynamic做出很多接近现实的逼真的动画。总而言之，个人认为本文的内容还是比较有价值的，对于我自己，作为一个笔记，可以时常温习，对于新手开发者，又是一个提高的教程，希望它可以帮到你，谢谢你的阅读。
+
+
+#### 相关文章
+
+* [Objc关于动画的介绍](https://objccn.io/issue-12-0/)
+* [官方对QuartzCore的介绍](https://developer.apple.com/reference/quartzcore)
+* [官方的Animation指导](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/CoreAnimation_guide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40004514)
+* [GitBook上一本关于动画的书](https://zsisme.gitbooks.io/ios-/content/index.html)

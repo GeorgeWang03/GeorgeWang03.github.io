@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="iOS、创作与设计 | 王颖，iOS Engineer | 这里是王颖的个人博客，我们在这里分享技术，分享见闻，分享人生">
+    <meta name="keywords"  content="王颖, @georgewang, 王颖的博客, GeorgeWang Blog, 博客, 个人网站, 互联网, iOS, 读书, 旅行">
+    <link rel="shortcut icon" href="/img/seoIcon.jpg">
+
+    <title>WYChart介绍系列（三）线型图绘制 - 王颖的博客 | GeorgeWang Blog</title>
+
+    <link rel="canonical" href="http://blog.oneinbest.com/2016/10/15/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%B8%89-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E7%BB%98%E5%88%B6/">
+
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/hux-blog.min.css">
+
+    <!-- Pygments Github CSS -->
+    <link rel="stylesheet" href="/css/syntax.css">
+
+    <!-- Custom Fonts -->
+    <!-- <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css"> -->
+    <!-- Hux change font-awesome CDN to qiniu -->
+    <link href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+
+    <!-- Hux Delete, sad but pending in China
+    <link href='http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/
+    css'>
+    -->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- ga & ba script hoook -->
+    <script></script>
+</head>
+
+
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="">
+
+    <!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">GeorgeWang Blog</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/about/">About</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/tags/">Tags</a>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    var __HuxNav__ = {
+        close: function(){
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        },
+        open: function(){
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+
+    // Bind Event
+    $toggle.addEventListener('click', function(e){
+        if ($navbar.className.indexOf('in') > 0) {
+            __HuxNav__.close()
+        }else{
+            __HuxNav__.open()
+        }
+    })
+
+    /**
+     * Since Fastclick is used to delegate 'touchstart' globally
+     * to hack 300ms delay in iOS by performing a fake 'click',
+     * Using 'e.stopPropagation' to stop 'touchstart' event from 
+     * $toggle/$collapse will break global delegation.
+     * 
+     * Instead, we use a 'e.target' filter to prevent handler
+     * added to document close HuxNav.  
+     *
+     * Also, we use 'click' instead of 'touchstart' as compromise
+     */
+    document.addEventListener('click', function(e){
+        if(e.target == $toggle) return;
+        if(e.target.className == 'icon-bar') return;
+        __HuxNav__.close();
+    })
+</script>
+
+
+    <!-- Image to hack wechat -->
+<!-- <img src="/img/icon_wechat.png" width="0" height="0"> -->
+<!-- <img src="/img/post-bg-miui6.jpg" width="0" height="0"> -->
+
+<!-- Post Header -->
+<style type="text/css">
+    header.intro-header{
+        position: relative;
+        background-image: url('/img/post-bg-miui6.jpg')
+    }
+
+    
+</style>
+<header class="intro-header" >
+    <div class="header-mask"></div>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                        <a class="tag" href="/tags/#WYChart" title="WYChart">WYChart</a>
+                        
+                        <a class="tag" href="/tags/#开源" title="开源">开源</a>
+                        
+                        <a class="tag" href="/tags/#动画" title="动画">动画</a>
+                        
+                    </div>
+                    <h1>WYChart介绍系列（三）线型图绘制</h1>
+                    
+                    
+                    <h2 class="subheading"></h2>
+                    
+                    <span class="meta">Posted by GeorgeWang on October 15, 2016</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+
+    <!-- Post Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+				<p>绘制是整个线型图实现的基础，如何绘制一个线型图？</p>
+
+<p>在<strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong>中，我采用的是CAShapeLayer+UIBezierPath的组合，在这之前考虑过采用CoreGraphic做绘制，但是由于CALayer有CABasicAnimation一系列的动画支持，而且CoreAnimation框架都是Objective-C封装，相比CoreGraphic的C语言风格，更方便使用，所以最终还是采用CAShapeLayer+UIBezierPath的组合。此外，渐变前景的绘制用到CALayer的子类CAGradientLayer。</p>
+
+<p>线图中绘制的内容很多，但是总体并不复杂，<strong>主要</strong>还是在以下几点：</p>
+
+<ul>
+  <li>CALayer及CAShapeLayer的使用</li>
+  <li>UIBezierPath的使用</li>
+  <li>绘制平滑的曲线及其涉及的计算</li>
+  <li>CAGradientLayer绘制渐变层</li>
+</ul>
+
+<p>所以，本文也从上面四点介绍WYChart线型图的实现。</p>
+
+<h3 id="calayercashapelayer">CALayer及CAShapeLayer的使用</h3>
+
+<p><a href="https://developer.apple.com/reference/quartzcore/calayer">官方文档</a>对CALayer的介绍时这样的：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>The CALayer class manages image-based content and allows you to perform animations on that content. Layers are often used to provide the backing store for views but can also be used without a view to display content. 
+</code></pre>
+</div>
+
+<p>简单地说就是CALayer类族管理与图像有关的内容并可以让你在上面做动画；Layer是View的基础，而且可以在View之外自己展示内容。</p>
+
+<p><a href="https://objccn.io/issue-12-4/">objc.io</a>对CALayer是这样介绍的：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>在 iOS 中，所有的 view 都是由一个底层的 layer 来驱动的。view 和它的 layer 之间有着紧密的联系，view 其实直接从 layer 对象中获取了绝大多数它所需要的数据。在 iOS 中也有一些单独的 layer，比如 AVCaptureVideoPreviewLayer 和 CAShapeLayer，它们不需要附加到 view 上就可以在屏幕上显示内容。两种情况下其实都是 layer 在起决定作用。
+</code></pre>
+</div>
+
+<p>可知layer是很重要的，如果对CALayer还不是很了解的话，可以从以上链接内容了解一下。</p>
+
+<p>CAShapeLayer是CALayer的一个子类，主要是渲染绘制在上面的贝塞尔线集合的形状。</p>
+
+<p><a href="https://developer.apple.com/reference/quartzcore/cashapelayer">官方文档</a>对CAShapeLayer的介绍是这样的：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>The CAShapeLayer class draws a cubic Bezier spline in its coordinate space. The shape is composited between the layer's contents and its first sublayer.
+</code></pre>
+</div>
+
+<p>结合上面所述，我们知道可以在CAShapeLayer上绘制线型图。</p>
+
+<p><strong>如何使用CAShapeLayer ？</strong></p>
+
+<p>CAShapeLayer使用简单，只要初始化并添加到view.layer上就可以绘制。</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>	CAShapeLayer *layer = [CAShapeLayer layer];
+	...
+	layer.path = path;
+	//strokeColor, fillColor..的属性设置
+	...
+	[view.layer addSublayer:layer];
+</code></pre>
+</div>
+
+<p>CAShapeLayer的主要属性有：</p>
+
+<ul>
+  <li>path : UIBezierPath // 决定Layer绘制形状的属性</li>
+  <li>strokeColor : UIColor // 决定线条的颜色</li>
+  <li>fillColor : UIColor // 决定被线条包围的封闭区域的填充颜色</li>
+  <li>lineWidth : CGFloat // 线条的宽度</li>
+</ul>
+
+<p>此外还有其它的，如用于绘制虚线的属性，都可以对绘制形状进行定制。</p>
+
+<h3 id="uibezierpath">UIBezierPath的使用</h3>
+
+<p><strong>首先</strong>，是对贝塞尔曲线的理解，他是一个怎样的东西？</p>
+
+<ul>
+  <li><a href="https://zh.wikipedia.org/wiki/%E8%B2%9D%E8%8C%B2%E6%9B%B2%E7%B7%9A">维基百科的介绍</a>(需要翻墙)</li>
+</ul>
+
+<p>关于曲线的历史就不做介绍了，贝塞尔曲线最初用于汽车流体结构的设计。其原理就是通过所给出的点，以及<strong>相关方程</strong>，根据<strong>时刻t</strong>在某个[0,x]区间内计算出的所有<strong>点连成的直线／曲线</strong>，称为贝塞尔曲线。</p>
+
+<p>贝塞尔曲线可分为一次曲线、二次曲线和高阶曲线，二相关方程表示如下：</p>
+
+<ul>
+  <li>一次曲线</li>
+</ul>
+
+<p><img src="/img/post_img/2016-10-13-WYChart-S/one_time_bezier.png" alt="one_time_bezier" /></p>
+
+<ul>
+  <li>二次曲线</li>
+</ul>
+
+<p><img src="/img/post_img/2016-10-13-WYChart-S/two_times_bezier.png" alt="one_time_bezier" /></p>
+
+<ul>
+  <li>高阶曲线</li>
+</ul>
+
+<p><img src="/img/post_img/2016-10-13-WYChart-S/high_bezier.png" alt="one_time_bezier" /></p>
+
+<p>不同曲线的绘制过程如下，注意方程计算出的<strong>点</strong>的移动路径，即为曲线：</p>
+
+<ul>
+  <li>一次曲线，其实就是直线</li>
+</ul>
+
+<p><img src="/img/post_img/2016-10-13-WYChart-S/one_time_bezier.gif" alt="one_time_bezier" /></p>
+
+<ul>
+  <li>二次曲线</li>
+</ul>
+
+<p><img src="/img/post_img/2016-10-13-WYChart-S/two_times_bezier.gif" alt="one_time_bezier" /></p>
+
+<p>例如二次贝塞尔曲线，其实方程中的P1就是UIBezierPath中用到的<strong>控制点</strong>（controlPoint)；以此类推，可知一次曲线没有控制点。</p>
+
+<p><strong>其次</strong>，是UIKit中的UIBezierPath的使用方法</p>
+
+<p><a href="https://developer.apple.com/reference/uikit/uibezierpath">官方文档</a>对UIBezierPath的介绍是这样的：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>The UIBezierPath class lets you define a path consisting of straight and curved line segments and render that path in your custom views. 
+</code></pre>
+</div>
+
+<p>就是，UIBezierPath可以让你在自定义view上面绘制直线和曲线段。</p>
+
+<p>其实有了上面对于贝塞尔曲线的介绍，使用<strong>UIBezierPath</strong>进行绘制应该比较简单了。</p>
+
+<p>UIBezierPath提供的方法有两种，一种是构造好的类方法，另一种是手动构造的，也是我们主要介绍的。</p>
+
+<p>构造好的类方法用于创建矩形、椭圆形、圆形、弧线等，方法如下所示：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>+ (instancetype)bezierPathWithRect:(CGRect)rect; //矩形
++ (instancetype)bezierPathWithOvalInRect:(CGRect)rect; //椭圆
++ (instancetype)bezierPathWithRoundedRect:(CGRect)rect cornerRadius:(CGFloat)cornerRadius; // 圆角矩形
++ (instancetype)bezierPathWithArcCenter:(CGPoint)center radius:(CGFloat)radius startAngle:(CGFloat)startAngle endAngle:(CGFloat)endAngle clockwise:(BOOL)clockwise; //弧形
+</code></pre>
+</div>
+
+<p>手动构造的方法有以下几种：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>- (void)moveToPoint:(CGPoint)point; // 从某个点开始绘制
+- (void)addLineToPoint:(CGPoint)point; // 从当前点添加直线到某个点
+- (void)addCurveToPoint:(CGPoint)endPoint controlPoint1:(CGPoint)controlPoint1 controlPoint2:(CGPoint)controlPoint2; // 从当前点P0，添加三次曲线到某个点P3，这个在上面的贝塞尔曲线介绍有提到
+- (void)addQuadCurveToPoint:(CGPoint)endPoint controlPoint:(CGPoint)controlPoint; // 从当前点P0，添加二次曲线到某个点P2，控制点为P1，这个在上面的贝塞尔曲线介绍有提到
+- (void)addArcWithCenter:(CGPoint)center radius:(CGFloat)radius startAngle:(CGFloat)startAngle endAngle:(CGFloat)endAngle clockwise:(BOOL)clockwise NS_AVAILABLE_IOS(4_0); //添加弧
+</code></pre>
+</div>
+
+<p>假如我们要绘制一段二次贝塞尔曲线，可以这样画：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>UIBezierPath *path = [UIBezierPath bezierPath];
+[path moveToPoint:p0];
+[path addQuadCurveToPoint:p2 controlPoint:p1];
+</code></pre>
+</div>
+
+<p>以上为贝塞尔曲线的介绍和UIBezierPath的用法。</p>
+
+<h3 id="section">绘制平滑的曲线及其涉及的计算</h3>
+
+<p>如<a href="">上一篇文章</a>所介绍的，WYChart中线型图类型有直线、波浪型曲线、尖峰型曲线等几种，关于直线，如上文介绍的，我们可以直接用<code class="highlighter-rouge">- (void)addLineToPoint:(CGPoint)point</code>便可以绘制，这里我们主要介绍平滑的波浪型曲线的绘制，至于尖峰型曲线，如果你了解了波浪形曲线的画法，相信就很简单了。</p>
+
+<p>确保你记住上文中提到的<strong>贝塞尔曲线的概念</strong>后，请看下图：</p>
+
+<p><img src="/img/post_img/2016-10-13-WYChart-S/Draw_Curve.jpg" alt="Draw_Curve" /></p>
+
+<p>假设p1，p2，p3是给出的数据中连续三个点，绘制一段平滑的贝塞尔曲线，需要满足以下四种条件：</p>
+
+<ul>
+  <li>某个点前后的点的值都比该点大，那么该点处于这段曲线的最底部</li>
+  <li>某个点前后的点的值都比该点小，那么该点处于这段曲线的最高处</li>
+  <li>某个点前后的点相比该点有一大一小，那么该点处于平缓的过渡段</li>
+  <li>每个点所在的曲线斜率为0</li>
+</ul>
+
+<p>由上述最后一个条件，结合贝塞尔曲线原理（在本例中皆采用二次贝塞尔曲线，也就是只有一个控制点），在上面所给图中，p1和p2，或p2和p3之间若只有一个控制点，那么必定有一个点的斜率不为0，也就是造成曲线不平滑。那么，就只能分成两段进行绘制，如图中的p1和p2之间的曲线，我们取连线的中点m1为过渡点，分别绘制p1-m1，m1-p2的二次贝塞尔曲线；在两段曲线中再分别取控制点c1和c2，各个点满足以下关系：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>m1(x,y) = ((p1(x)+p2(x))/2, (p1(y)+p2(y))/2)
+c1(x,y) = ((p1(x)+m1(x))/2, p1(y))
+c2(x,y) = ((m1(x)+p2(x))/2, p2(y))
+</code></pre>
+</div>
+
+<p>关于控制点的y值，分别取和p1以及p2相同，使得两点的线段斜率为0。p2-p3之间的曲线以此类推，也就是先取中点，再取控制点，最后绘制两段曲线，任意两点间需要绘制两段曲线。</p>
+
+<p>p1-p2曲线绘制代码如下：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>UIBezierPath *path = [UIBezierPath path];
+[path moveToPoint:p1];
+[path addQuadCurveToPoint:m1 controlPoint:c1];
+[path addQuadCurveToPoint:p2 controlPoint:c2];
+</code></pre>
+</div>
+
+<p>绘制完毕 🍻🍻</p>
+
+<p>至于线型图另一种类型，尖峰曲线，不是平滑曲线，任何两点间都是一段向下凹的曲线，具体做法读者自行拓展，或者看WYChart源码。</p>
+
+<h3 id="cagradientlayer">CAGradientLayer绘制渐变层</h3>
+
+<p><a href="https://developer.apple.com/reference/quartzcore/cagradientlayer">官方文档</a> 对CAGradientLayer的介绍是这样的：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>The CAGradientLayer class draws a color gradient over its background color, filling the shape of the layer (including rounded corners)
+</code></pre>
+</div>
+
+<p>顾名思义，CAGradientLayer就是绘制渐变图层。可以生成两种或更多的颜色渐变，其使用了硬件加速渲染。</p>
+
+<p>使用方法是赋予一个colors数组和一个locations数组，前者表明渐变颜色，后者表明渐变颜色的位置</p>
+
+<p>在iOS绘制渐变图层还可以使用CoreGraphic的CGGradient，其比CAGradientLayer多出了径向渐变的画法，CAGradientLayer只支持轴向渐变。
+另外，使用CoreImage框架也可以绘制渐变图层，这个有兴趣的自己探索下。</p>
+
+<p>在WYChart中，我们要实现的线型图渐变效果是这样的：</p>
+
+<p><img src="/img/post_img/2016-10-13-WYChart-S/Line_Gradient.png" alt="gradient" /></p>
+
+<p>以让线型图更加美观。</p>
+
+<p>绘制思路是这样的，在绘制好的渐变层上面加一个“面具”，以呈现曲线的轮廓。</p>
+
+<p>这个“面具”就是layer的mask属性，也是layer类型，由于需要具体的形状，我们定义一个和曲线轮廓一样的CAShapeLayer就可以了。</p>
+
+<p>“面具”mask就是在一个图层上加上一个有形状的图层，让原来的图层呈现出某个轮廓的边框。</p>
+
+<p>代码实现如下：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>CAShapeLayer *maskLayer = [CAShapeLayer layer];
+...
+UIBezierPath  *gradientPath = [UIBezierPath bezierPathWithCGPath:linePath.CGPath];
+//构建与曲线相同的轮廓，做法和贝塞尔曲线绘制相同
+...
+maskLayer.path = gradientPath;
+CAGradientLayer *gradientLayer = [CAGradientLayer layer];
+gradientLayer.mask = maskLayer;
+gradientLayer.colors = cgColors;
+</code></pre>
+</div>
+
+<p>需要注意的是，gradientLayer.colors属性要求每个元素是CGColor类型的，故我们需要对UIColor做类型转换：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>NSMutableArray *cgColors = [NSMutableArray arrayWithCapacity:gradientColors.count];
+    [gradientColors enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        CGColorRef cgColor;
+        if ([obj isKindOfClass:[UIColor class]]) {
+            cgColor = ((UIColor *)obj).CGColor;
+        } else {
+            cgColor = (__bridge CGColorRef)(obj);
+        }
+        [cgColors addObject:(__bridge id)cgColor];
+    }];
+</code></pre>
+</div>
+
+<p>这样子才能绘制出预想的效果。</p>
+
+<h3 id="section-1">总结</h3>
+
+<p>至此，我们的线型图绘制过程就完成了，我们大概通过下列几个重要过程绘制：</p>
+
+<ul>
+  <li>CALayer及CAShapeLayer的使用</li>
+  <li>UIBezierPath的使用</li>
+  <li>绘制平滑的曲线及其涉及的计算</li>
+  <li>CAGradientLayer绘制渐变层</li>
+</ul>
+
+<p>将一个看似难的效果，分解成多个不同的技术点，逐个实现，便可破之。</p>
+
+<p>如果你对上述介绍还不是很清晰，结合源码进行阅读吧，戳👉<strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong></p>
+
+<p>下一篇我将继续介绍WYChart的线型图动画的实现。</p>
+
+
+                <ul class="pager">
+                    
+                    <li class="previous">
+                        <a href="/2016/10/12/WYChart%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%BA%8C-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E7%9A%84%E6%A1%86%E6%9E%B6%E6%A6%82%E8%A7%88%E5%8F%8A%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF/" data-toggle="tooltip" data-placement="top" title="WYChart介绍系列（二）线型图的框架概览及设计思路">
+                        Previous<br>
+                        <span>WYChart介绍系列（二）线型图的框架概览及设计思路</span>
+                        </a>
+                    </li>
+                    
+                    
+                    <li class="next">
+                        <a href="/2016/10/16/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E5%9B%9B-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E5%8A%A8%E7%94%BB%E7%9A%84%E5%AE%9E%E7%8E%B0/" data-toggle="tooltip" data-placement="top" title="WYChart介绍系列（四）线型图动画的实现">
+                        Next<br>
+                        <span>WYChart介绍系列（四）线型图动画的实现</span>
+                        </a>
+                    </li>
+                    
+                </ul>
+<hr>
+<!-- JiaThis Button BEGIN -->
+<div class="jiathis_style"><span class="jiathis_txt">分享到：</span>
+<a class="jiathis_button_weixin"></a>
+<a class="jiathis_button_tsina"></a>
+<a class="jiathis_button_ydnote"></a>
+<a class="jiathis_button_fb"></a>
+<a href="http://www.jiathis.com/share?uid=2116351" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+</div>
+<script type="text/javascript" >
+var jiathis_config={
+    data_track_clickback:true,
+    siteNum:4,
+    sm:"tsina,weixin,ydnote,fb",
+    summary:"",
+    boldNum:4,
+    shortUrl:false,
+    hideMore:false
+}
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code_mini/jia.js?uid=2116351" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+
+
+
+
+
+
+<div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+<script>
+  var cloudTieConfig = {
+    url: "http://blog.oneinbest.com/2016/10/15/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%B8%89-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E7%BB%98%E5%88%B6/", 
+    sourceId: "http://blog.oneinbest.com/2016/10/15/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%B8%89-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E7%BB%98%E5%88%B6/",
+    productKey: "1ed9a4bea780408289b61120e47c3586",
+    target: "cloud-tie-wrapper"
+  };
+</script>
+
+</div>
+
+<script src="https://img1.ws.126.net/f2e/tie/yun/sdk/loader.js"></script>
+
+
+                
+
+            </div>  
+
+    <!-- Side Catalog Container -->
+        
+
+    <!-- Sidebar Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                <!-- Featured Tags -->
+                
+
+                <!-- Friends Blog -->
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+<script type="text/javascript">
+    // dynamic User by Hux
+    var _user = 'huxblog';
+
+    // duoshuo comment query.
+    var duoshuoQuery = {short_name: _user };
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0]
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!-- 多说公共JS代码 end -->
+
+
+
+
+
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+<!-- anchor-js, Doc:http://bryanbraun.github.io/anchorjs/ -->
+<script>
+    async("//cdnjs.cloudflare.com/ajax/libs/anchor-js/1.1.1/anchor.min.js",function(){
+        anchors.options = {
+          visible: 'always',
+          placement: 'right',
+          icon: '#'
+        };
+        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
+    })
+</script>
+<style>
+    /* place left on bigger screen */
+    @media all and (min-width: 800px) {
+        .anchorjs-link{
+            position: absolute;
+            left: -0.75em;
+            font-size: 1.1em;
+            margin-top : -0.1em;
+        }
+    }
+</style>
+
+
+    <!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                    
+                    
+
+                    <!-- add Weibo, Zhihu by Hux, add target = "_blank" to <a> by Hux -->
+                    
+                    
+                    <li>
+                        <a target="_blank" href="http://weibo.com/_王颖_">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-weibo fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+
+
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://github.com/GeorgeWang03">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                    
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright &copy; GeorgeWang Blog 2016
+                    <!-- <br>
+                    Theme by <a href="http://huangxuan.me">Hux</a> | -->
+                    <iframe
+                        style="margin-left: 2px; margin-bottom:-5px;"
+                        frameborder="0" scrolling="0" width="91px" height="20px"
+                        src="https://ghbtns.com/github-btn.html?user=GeorgeWang03&repo=georgewang03.github.io&type=star&count=true" >
+                    </iframe>
+                </p>
+                <p align="center"><font size="2" color="#808080">
+                <span id="busuanzi_container_site_pv">您是本站第<span id="busuanzi_value_site_pv"></span>位访客</span></font>
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- jQuery -->
+<script src="/js/jquery.min.js "></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="/js/bootstrap.min.js "></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="/js/hux-blog.min.js "></script>
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+<!-- 
+     Because of the native support for backtick-style fenced code blocks 
+     right within the Markdown is landed in Github Pages, 
+     From V1.6, There is no need for Highlight.js, 
+     so Huxblog drops it officially.
+
+     - https://github.com/blog/2100-github-pages-now-faster-and-simpler-with-jekyll-3-0  
+     - https://help.github.com/articles/creating-and-highlighting-code-blocks/ 
+     - https://github.com/jneen/rouge/wiki/list-of-supported-languages-and-lexers   
+-->
+<!--
+    <script>
+        async("http://cdn.bootcss.com/highlight.js/8.6/highlight.min.js", function(){
+            hljs.initHighlightingOnLoad();
+        })
+    </script>
+    <link href="http://cdn.bootcss.com/highlight.js/8.6/styles/github.min.css" rel="stylesheet">
+-->
+<!-- 不蒜子 -->
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async('/js/jquery.tagcloud.js',function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+<!--fastClick.js -->
+<script>
+    async("//cdnjs.cloudflare.com/ajax/libs/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+<!-- Google Analytics -->
+
+
+
+<!-- Baidu Tongji -->
+
+
+
+
+<!-- Side Catalog -->
+
+
+
+
+
+<!-- Image to hack wechat -->
+<img src="/img/icon_wechat.png" width="0" height="0" />
+<!-- Migrate from head to bottom, no longer block render and still work -->
+
+</body>
+
+</html>

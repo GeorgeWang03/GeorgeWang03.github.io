@@ -173,6 +173,75 @@
             ">
     			
 <div class="post-preview">
+    <a href="/2016/11/07/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%BA%94-%E4%BA%A4%E4%BA%92-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E8%A7%A6%E7%A2%B0%E7%82%B9%E4%BB%A5%E5%8F%8A%E7%BC%A9%E6%94%BE%E7%9A%84%E5%AE%9E%E7%8E%B0/">
+        <h2 class="post-title">
+            WYChart介绍系列（五）交互：线型图触碰点以及缩放的实现
+        </h2>
+        
+        <div class="post-content-preview">
+            前面三张分别介绍了WYChart中线型图的总体规划、绘制、动画的实现，相信看完的读者对于如何实现一个带效果的线型图有一个整体的概念了，那么，再加上接下来要介绍的这一点，那么线型图的实现就完整了，那就是交互的实现。
+
+线型图中主要的交互有两种，第一是曲线上点的触碰获取，第二是缩放。（其实还有一点，就是可滑动，由于相对简单，不展开）
+
+本文将从以下两点介绍：
+
+
+  可滑动触碰点实现
+  缩放实...
+        </div>
+    </a>
+    <p class="post-meta">
+        Posted by GeorgeWang on November 7, 2016
+    </p>
+</div>
+<hr>
+
+<div class="post-preview">
+    <a href="/2016/10/16/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E5%9B%9B-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E5%8A%A8%E7%94%BB%E7%9A%84%E5%AE%9E%E7%8E%B0/">
+        <h2 class="post-title">
+            WYChart介绍系列（四）线型图动画的实现
+        </h2>
+        
+        <div class="post-content-preview">
+            在前面的文章中有提到WYChart中线型图使用的是CoreAnimation框架，动画的制作也是使用里面一系列的效果。
+
+本文将分为下面几个部分做讲解：
+
+
+  CoreAnimation的动画类CABasicAnimation及其子类
+  WYChart中线型图采用的动画类型
+  CADisplayLink+UIViewAnimation+CALayer的动画模式
+
+
+那么，开始吧 👇👇
+...
+        </div>
+    </a>
+    <p class="post-meta">
+        Posted by GeorgeWang on October 16, 2016
+    </p>
+</div>
+<hr>
+
+<div class="post-preview">
+    <a href="/2016/10/15/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%B8%89-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E7%BB%98%E5%88%B6/">
+        <h2 class="post-title">
+            WYChart介绍系列（三）线型图绘制
+        </h2>
+        
+        <div class="post-content-preview">
+            绘制是整个线型图实现的基础，如何绘制一个线型图？
+
+在WYChart中，我采用的是CAShapeLayer+UIBezierPath的组合，在这之前考虑过采用CoreGraphic做绘制，但是由于CALayer有CABasicAnimation一系列的动画支持，而且CoreAnimation框架都是Objective-C封装，相比CoreGraphic的C语言风格，更方便使用，所以最终还是采...
+        </div>
+    </a>
+    <p class="post-meta">
+        Posted by GeorgeWang on October 15, 2016
+    </p>
+</div>
+<hr>
+
+<div class="post-preview">
     <a href="/2016/10/12/WYChart%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%BA%8C-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E7%9A%84%E6%A1%86%E6%9E%B6%E6%A6%82%E8%A7%88%E5%8F%8A%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF/">
         <h2 class="post-title">
             WYChart介绍系列（二）线型图的框架概览及设计思路
@@ -429,6 +498,9 @@ Tips:
                         src="https://ghbtns.com/github-btn.html?user=GeorgeWang03&repo=georgewang03.github.io&type=star&count=true" >
                     </iframe>
                 </p>
+                <p align="center"><font size="2" color="#808080">
+                <span id="busuanzi_container_site_pv">您是本站第<span id="busuanzi_value_site_pv"></span>位访客</span></font>
+                </p>
             </div>
         </div>
     </div>
@@ -474,8 +546,9 @@ Tips:
     </script>
     <link href="http://cdn.bootcss.com/highlight.js/8.6/styles/github.min.css" rel="stylesheet">
 -->
-
-
+<!-- 不蒜子 -->
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
 <!-- jquery.tagcloud.js -->
 <script>
     // only load tagcloud.js in tag.html

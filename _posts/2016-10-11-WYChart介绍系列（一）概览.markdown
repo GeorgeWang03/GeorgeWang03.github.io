@@ -20,7 +20,7 @@ tags:
 
 ### 线型图
 * [框架概览／设计思路](http://blog.oneinbest.com/2016/10/12/WYChart介绍系列-二-线型图的框架概览及设计思路)
-* 绘制：线条的绘制思路
+* [绘制：线条的绘制思路](http://blog.oneinbest.com/2016/10/15/WYChart-介绍系列-三-线型图绘制)
 * 动画：实现方式（draw,spring...)
 * 交互：触碰点实现
 

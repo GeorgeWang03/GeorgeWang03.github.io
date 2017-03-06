@@ -10,9 +10,9 @@
     <meta name="keywords"  content="王颖, @georgewang, 王颖的博客, GeorgeWang Blog, 博客, 个人网站, 互联网, iOS, 读书, 旅行">
     <link rel="shortcut icon" href="/img/seoIcon.jpg">
 
-    <title>创建自己的 Github 开源库并发布到 Cocoapods 插件库 - 王颖的博客 | GeorgeWang Blog</title>
+    <title>WYChart介绍系列（五）交互：线型图触碰点以及缩放的实现 - 王颖的博客 | GeorgeWang Blog</title>
 
-    <link rel="canonical" href="http://blog.oneinbest.com/2016/10/10/%E5%88%9B%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84-Github-%E5%BC%80%E6%BA%90%E5%BA%93%E5%B9%B6%E5%8F%91%E5%B8%83%E5%88%B0-Cocoapods-%E6%8F%92%E4%BB%B6%E5%BA%93/">
+    <link rel="canonical" href="http://blog.oneinbest.com/2016/11/07/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%BA%94-%E4%BA%A4%E4%BA%92-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E8%A7%A6%E7%A2%B0%E7%82%B9%E4%BB%A5%E5%8F%8A%E7%BC%A9%E6%94%BE%E7%9A%84%E5%AE%9E%E7%8E%B0/">
 
     <!-- Bootstrap Core CSS -->
     <link rel="stylesheet" href="/css/bootstrap.min.css">
@@ -163,19 +163,21 @@
                 <div class="post-heading">
                     <div class="tags">
                         
-                        <a class="tag" href="/tags/#Github" title="Github">Github</a>
+                        <a class="tag" href="/tags/#WYChart" title="WYChart">WYChart</a>
                         
-                        <a class="tag" href="/tags/#Cocoapods" title="Cocoapods">Cocoapods</a>
+                        <a class="tag" href="/tags/#开源" title="开源">开源</a>
                         
-                        <a class="tag" href="/tags/#OpenSource" title="OpenSource">OpenSource</a>
+                        <a class="tag" href="/tags/#绘制" title="绘制">绘制</a>
+                        
+                        <a class="tag" href="/tags/#交互" title="交互">交互</a>
                         
                     </div>
-                    <h1>创建自己的 Github 开源库并发布到 Cocoapods 插件库</h1>
+                    <h1>WYChart介绍系列（五）交互：线型图触碰点以及缩放的实现</h1>
                     
                     
                     <h2 class="subheading"></h2>
                     
-                    <span class="meta">Posted by GeorgeWang on October 10, 2016</span>
+                    <span class="meta">Posted by GeorgeWang on November 7, 2016</span>
                 </div>
             </div>
         </div>
@@ -193,173 +195,159 @@
                 col-md-10 col-md-offset-1
                 post-container">
 
-				<p><strong>前记：本文用于记录开源库的创建过程备忘以及初学者参考</strong></p>
+				<p>前面三张分别介绍了<strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong>中线型图的总体规划、绘制、动画的实现，相信看完的读者对于如何实现一个带效果的线型图有一个整体的概念了，那么，再加上接下来要介绍的这一点，那么线型图的实现就完整了，那就是交互的实现。</p>
 
-<p>开发者们平时在<strong>Github</strong>查看各种功能的开源库时，是否想过开源库从何而来？开源库如何创建？使用<strong>Cocoapods</strong>时的<code class="highlighter-rouge">pod 'someLibrary'</code>从何而来？</p>
+<p>线型图中主要的交互有两种，第一是曲线上点的触碰获取，第二是缩放。（其实还有一点，就是可滑动，由于相对简单，不展开）</p>
 
-<p>最近发布了个人第一个严格意义上的开源库<a href="'https://github.com/GeorgeWang03/WYChart'"><strong>WYChart</strong></a>，便想着把这个过程记录下来，以便后来者参考。本文将主要从Cocoapods创建公开库来说明Github + Cocoapods开源库创建全过程。</p>
-
-<h2 id="cocoapods">一、创建Cocoapods工程库</h2>
-
-<h3 id="desktopiospods">1. 在你存放开工程库的工程文件夹目录下（比如我的是~/Desktop/iOS/Pods)，执行下面命令：</h3>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	pod lib create MyLibrary
-</code></pre>
-</div>
-
-<p>接着会出现以下问题，即工程库为Objective-C还是Swift，<code class="highlighter-rouge">What language do you want to use?? [ Swift / ObjC ]</code>，根据你的需要输入，比如输入<code class="highlighter-rouge">Objc</code>，然后Enter；</p>
-
-<p>再接着是 <code class="highlighter-rouge">Would you like to include a demo application with your library? [ Yes / No ]</code>，也就是是否包含<strong>例子工程(demo)</strong>，需要的话选择<code class="highlighter-rouge">Yes</code>；</p>
-
-<p>然后是，<code class="highlighter-rouge">Which testing frameworks will you use? [ Specta / Kiwi / None ]</code>，选择测试框架，不需要的话选<code class="highlighter-rouge">None</code>；</p>
-
-<p>接着是，<code class="highlighter-rouge">Would you like to do view based testing? [ Yes / No ]</code>，是否要基于视图测试；</p>
-
-<p>最后是<code class="highlighter-rouge">What is your class prefix?</code>输入工程的前缀，所有的文件都会加上这个前缀。</p>
-
-<p>成功之后会有以下信息：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	Ace! you're ready to go!
-	We will start you off by opening your project in Xcode
-	open 'WYAnimations/Example/WYAnimations.xcworkspace'
-</code></pre>
-</div>
-
-<p>即工程库创建成功，🍺🍺🎆🎆🍻🍻</p>
-
-<h3 id="section">2. 工程库目录简介</h3>
-
-<p>工程库创建完之后，Xcode界面会弹出:</p>
-
-<p><img src="/img/post_img/2016-10-10-Github_Cocoapods/Xcode_Template.png" alt="XcodeTemplate" /></p>
-
-<p>由上往下可以看到主要的文件夹有<strong>Podspec Metadata</strong>，<strong>Example for yourLibrary</strong>，<strong>Development Pods - YourLibrary</strong>。
-	<strong>Podspec Metadata</strong>中分别有<strong>.podspec</strong>、<strong>README.md</strong>和<strong>LICENSE</strong>，<strong>.podspec</strong>为工程库的信息，详情格式google，<strong>README.md</strong>中可以对工程库做介绍，cocoapods会默认帮你生成一个介绍的模版:</p>
-
-<p><img src="/img/post_img/2016-10-10-Github_Cocoapods/README_DEFAULT.png" alt="README" /></p>
-
-<p>值得注意的是，<strong>README</strong>文件中常见的小图标，如<img src="https://img.shields.io/cocoapods/l/WYAnimations.svg?style=flat" alt="icon" /> 等，可以在<a href="http://shields.io/">这里</a>找到并定制。
-	<strong>LICENSE</strong>默认是<strong>MIT</strong>，你可以根据需要自行选择如Apache或 <a href="http://choosealicense.com/">其它的</a> 。</p>
-
-<p><strong>Example for yourLibrary</strong>便是存放Demo例子的文件夹，如同平时创建Xcode工程时一样。
-	<strong>Development Pods - YourLibrary</strong>，可以看到里面有<strong>ReplaceMe.m</strong>文件，顾名思义，就是用你的组件库内容替换它，也即是工程库文件的存放地。</p>
-
-<h3 id="section-1">3. 开发</h3>
-
-<p>在了解并创建完上述的工程之后，就可以编写你的工程库以及demo例子，如果工程和例子已经写好，那么直接复制替换到文件夹中就可以进入下一步发包了。</p>
-
-<h2 id="github">二、加入版本控制并推到Github</h2>
-
-<p>在Github上创建一个工程库，并在刚刚创建的本地工程库目录中，执行下面命令：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>$ git init  //初始化git仓库
-$ git add . //暂存所有修改
-$ git commit -m "first commit"  //提交修改
-$ git remote add origin git@github.com:YourUserName/	  YourRepository.git  //添加远程仓库
-$ git push -u origin master  //把本地内容推到Github远程仓库
-</code></pre>
-</div>
-
-<p>至此，你便可以随时将修改更新到Github仓库上。</p>
-
-<h2 id="cocoapods-1">三、把版本的工程库发布到Cocoapods公开库或私有库</h2>
-
-<p>备注：这里主要介绍公开库，私有库👉<a href="https://guides.cocoapods.org/making/private-cocoapods">点击这里</a>，公开库英文原版介绍👉<a href="https://guides.cocoapods.org/making/getting-setup-with-trunk">点击这里</a></p>
-
-<h3 id="pod">1.创建pod帐号</h3>
-
-<p>如果你已经创建过，可以跳过这一步。</p>
-
-<p>在终端输入(pod帐号不需要密码，只是一个token存放在你的机器上)：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	$ pod trunk register 你的邮箱 '你的用户名' --description='关于你的机器的描述'
-</code></pre>
-</div>
-
-<p>创建完，或者创建过之后，执行下面命令：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	$ pod trunk me
-</code></pre>
-</div>
-
-<p>会出现如下信息：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	- Name:     GeorgeWang  //用户名
-  		- Email:    georgewang003@gmail.com  //邮箱
-  		- Since:    September 18th, 08:44  //时间
-  		- Pods:	// 创建过的开源库
-		- WYChart
-  		- Sessions:
-</code></pre>
-</div>
-
-<h3 id="section-2">2.发布开源库</h3>
-
-<p>⚠️ 需要注意的是，cocoapods对发布的开源库要求没有任何错误或警告信息，而且要有证书（这一点由于我们在上面的创建中已经生成证书所以不用担心）。</p>
-
-<p>确定你的工程没有问题，以及版本正确之后，你需要在你的项目目录中创建一个<strong>git分支</strong>，标注版本号，如<code class="highlighter-rouge">0.1.0</code>，这样才会被cocoapods接受。</p>
-
-<p>最后，在工程库目录执行下述命令：</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>	pod trunk push [NAME.podspec]
-</code></pre>
-</div>
-
-<p>如果成功的话，工程库便发布到cocoapods上了。</p>
-
-<p>可以在其它工程里面的<strong>podfile</strong>尝试加入<code class="highlighter-rouge">pod YourRepository</code>，然后<code class="highlighter-rouge">pod install</code>，如果成功，即工程库发布成功。🍻🍻🎆🎆</p>
-
-<h3 id="section-3">3.发布开源库的新版本</h3>
-
-<p>经历上述流程，我们已经把最初版本发布到cocoapods了，如果后续开发时，有新的版本发布，那么就需要更新cocoapods版本。具体流程如下</p>
+<p>本文将从以下两点介绍：</p>
 
 <ul>
-  <li>更新Podspec文件中的版本号，并把修改好的文件提交到mater分支</li>
-  <li>
-    <p>在你确认发布的代码版本上打标签，标签版本号和上一步修改的一致</p>
-
-    <div class="highlighter-rouge"><pre class="highlight"><code>  git tag *version* 
-  git push origin --tags //推到github
-</code></pre>
-    </div>
-  </li>
-  <li>
-    <p>检测新版本是否通过pod验证</p>
-
-    <div class="highlighter-rouge"><pre class="highlight"><code>  pod spec lint *your_pod_name*.podspec 
-</code></pre>
-    </div>
-  </li>
-  <li>
-    <p>如果通过了，那么发布podspec文件</p>
-
-    <div class="highlighter-rouge"><pre class="highlight"><code>  pod trunk push *your_pod_name*.podspec
-</code></pre>
-    </div>
-  </li>
+  <li>可滑动触碰点实现</li>
+  <li>缩放实现</li>
 </ul>
 
-<p>至此，新版本发布完成 🍻🍻  <a href="http://sebastiandobrincu.com/blog/how-to-update-your-cocoapods-library-version">原文链接</a></p>
+<p>第一点比较复杂，第二点相对简单，话不多说，现在开始吧。</p>
 
-<p><strong>后记：发布流程至此结束，如果你对开源库有兴趣，行动吧，并推广你的开源库，让更多人知道你！</strong></p>
+<h2 id="section">可滑动触碰点的实现</h2>
+
+<p>这一点是基于读者对贝塞尔曲线有一定了解的基础上做介绍的，如果还不了解，参考前面系列文章第三篇。 👉 <a href="">前往</a></p>
+
+<p>由前面文章的介绍，我们可知<strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong>中线型图有三种线型，直线、波浪曲线和尖峰曲线。在触碰点实现中，我们把他们分成两个类别，第一个是直线，第二个是曲线，即波浪曲线和尖峰曲线。</p>
+
+<h4 id="section-1">首先是直线</h4>
+
+<p>获取直线上的点，由于触碰点的x代表直线上的x，但是y并不代表真实的y，所以这里第一步就是获取y（出发点），回想我们初高中学到的根据x求y值，那就是一次函数方程式了，可以根据斜率很快地得出某段直线x对应的y值。在<strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong>的实现中，我们把曲线分成了n段进行绘制，看过源码的读者应该知道代码中是用<code class="highlighter-rouge">WYLineChartPathSegment</code>表示曲线段的，其中主要属性如下：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>	<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">)</span> <span class="n">WYLineChartPoint</span> <span class="o">*</span><span class="n">startPoint</span><span class="p">;</span> <span class="c1">//起始点
+</span>	<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">)</span> <span class="n">WYLineChartPoint</span>   <span class="o">*</span><span class="n">endPoint</span><span class="p">;</span> <span class="c1">//结束点
+</span>	<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">)</span> <span class="n">WYLineChartPoint</span> <span class="o">*</span><span class="n">controlPoint</span><span class="p">;</span> <span class="c1">//控制点
+</span>
+	<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">)</span> <span class="n">CGFloat</span> <span class="n">coefficientA</span><span class="p">;</span> <span class="c1">//系数a
+</span>	<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">)</span> <span class="n">CGFloat</span> <span class="n">coefficientB</span><span class="p">;</span> <span class="c1">//系数b
+</span>	<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">)</span> <span class="n">CGFloat</span> <span class="n">coefficientC</span><span class="p">;</span> <span class="c1">//系数c
+</span></code></pre>
+</div>
+
+<p>咋一看是表示贝塞尔曲线和一元二次方程式的，但是，只要系数a=0，那么二次方程式不就是一次方程式吗，因此，线段的方程式计算代码如下：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>	 segment.coefficientA = 0;
+	 segment.coefficientB = (endPoint.y - startPoint.y) / (endPoint.x - startPoint.x); //斜率计算
+	 segment.coefficientC = startPoint.y - segment.coefficientB * startPoint.x; //常数计算
+</code></pre>
+</div>
+
+<p>触碰点对应的y值计算方法如下：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>	- (CGFloat)yValueCalculteFromQuadraticFormulaForPoint:(CGPoint)point {
+
+		CGFloat x = point.x;
+		return _coefficientA * powf(x, 2) + _coefficientB * x + _coefficientC;
+	}
+</code></pre>
+</div>
+
+<p>由于<code class="highlighter-rouge">_coefficientA = 0</code>，故这里相当于 ` _coefficientB * x + _coefficientC<code class="highlighter-rouge"> 即 </code>y=bx+c`一次方程形式。</p>
+
+<p>以上便是直线的y值获取方式。</p>
+
+<h4 id="section-2">其次是曲线</h4>
+
+<p>曲线上的x对应y值的获取，和直线一样，通过方程式获取，这时候你可能会想，那就通过二次方程式 <code class="highlighter-rouge">y=ax^2+bx+c</code> 代入照搬吧！</p>
+
+<p>那么问题来了，二次方程式的系数如何获取？贝塞尔曲线是否就是二次方程式绘制出来的？</p>
+
+<p>对于后一个问题，答案是否定的。而要解第一个问题，就先要解决第二个问题。</p>
+
+<p>所有贝塞尔曲线（二次，这里不讨论三次贝塞尔）是抛物线，但是抛物线不一定可以用二次方程式表示。故，要获取二次方程式的系数，就要确定我们所绘制的二次贝塞尔曲线可以用二次方程式表示，相关推理参照<a href="http://math.stackexchange.com/questions/1257576/convert-quadratic-bezier-curve-to-parabola">歪果仁的回答</a></p>
+
+<p>也就是，二次曲线的三个控制点要满足以下关系：</p>
+
+<p><img src="/img/post_img/2016-10-13-WYChart-S/bezier_cur_infer_1.png" alt="bezier_cur_infer_1" /></p>
+
+<p>即控制点在<strong>x轴上</strong>必需是<strong>起始点</strong>和<strong>终止点</strong>的中点，<code class="highlighter-rouge">x2 = (x1 + x3)/2</code>（为什么是这样，唯一知道的就是控制点x一定要是起始点和终止点之间，这样才不会导致一个x对应两个y值，但为什么是<code class="highlighter-rouge">x2 = (x1 + x2)/2</code>，这个还需要推论，有读者知道，望指教），幸运的是，<strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong>中的曲线符合这个关系，看过前面文章的读者应该记得，绘制平滑曲线时，我们便是取中点绘制曲线的。</p>
+
+<p>由以下贝塞尔曲线绘制图：</p>
+
+<p><img src="/img/post_img/2016-10-13-WYChart-S/two_times_bezier.gif" alt="two_times_bezier" /></p>
+
+<p>再结合上述歪果仁的回答，我们知道，起始点的斜率为起点和控制点连线的斜率，终点斜率为终点与控制点连线的斜率（这个结论其实还不严谨，需要一个证明过程，如果有读者知道，望指教)，于是有以下斜率关系：</p>
+
+<p><img src="/img/post_img/2016-10-13-WYChart-S/bezier_cur_infer_2.png" alt="bezier_cur_infer_1" /></p>
+
+<p>再由以上公式做推导，可以得到以下关系，进而求出系数a、b：</p>
+
+<p><img src="/img/post_img/2016-10-13-WYChart-S/bezier_cur_infer_3.png" alt="bezier_cur_infer_1" /></p>
+
+<p>有了系数a、b，那么参数c就可以很容易求出了。于是，触碰点的曲线y值就可以求出，带入二次方程，代码实现与上文直线求值一致。
+因此，根据触碰点的变化，我们就可以求出曲线上对应的点了。</p>
+
+<p>上述直线与曲线y值求出，但还有一点没提到，就是：</p>
+<h4 id="section-3">具体线段的寻找</h4>
+
+<p>我们的线由很多个线段组成，在求出具体的值之前，还需要寻找具体的线段。
+在代码中，我们定义了一个数组用于存放所有<code class="highlighter-rouge">WYLineChartPathSegment</code>线段，在获取触碰点时，遍历线段集合（后续优化可以采用二分查找提高效率），找到其中满足<code class="highlighter-rouge">x&lt;endPoint.x &amp;&amp; x&gt;startPoint.x</code>的线段，然后带入线段所属方程式，即可得到指定的点；如果线段不存在，意味着超出了线的范围。</p>
+
+<h4 id="section-4">最后</h4>
+
+<p>我们需要定义一个长按手势，用于启动并移动，然后把对应视图中的点转换成线段上的点，最后更新触碰点的位置，需要时做动画。</p>
+
+<p>以上便是触碰点的实现，最初需要理解掌握贝塞尔曲线的概念及部分原理，然后是点转换的分析，接着是直线与曲线的方程式，再者是二次贝塞尔曲线与二次方程式的关系，最后是点的转换及绘制，分而治之，逐个击破，看似有点难度的触碰点实现也就很简单了。</p>
+
+<h2 id="section-5">缩放的实现</h2>
+
+<p>在<strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong>线型图中，我们实现了一个捏合手势（<code class="highlighter-rouge">UIPinchGestureRecognizer</code>）做图形缩放的交互功能。原理其实挺简单，就是利用捏合手势获取到的缩放系数scale，对线图做水平缩放，缩放时采用CGAffineTransform来实现，并做透明度随缩放系数scale的变化，实现过渡效果，让交互更加自然。实现代码大概如下：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>	- (void)handlePinchGesture:(UIPinchGestureRecognizer *)recognize {
+    	if (!_pinchable) return;
+		[self transformComponentsWithPinchScale:recognize.scale];
+		...
+		// 根据手势状态的变化通知代理
+		...
+	}
+	
+	- (void)transformComponentsWithPinchScale:(CGFloat)scale {
+
+		CGAffineTransform transform = CGAffineTransformIdentity;
+		transform = CGAffineTransformScale(transform, scale, 1.0);
+
+		CGFloat alpha = scale * 0.3; // 转换为透明度变化系数
+
+		_lineGraph.transform = transform; // 线图前景缩放
+		_lineGraph.alpha = alpha; 		    // 线图前景透明度变化
+
+		_verticalReferenceLineGraph.transform = transform; // 垂直方向参考线视图缩放
+		_verticalReferenceLineGraph.alpha = alpha; // 垂直方向参考线视图透明度变化
+
+		_xAxisView.transform = transform; // x轴前景缩放
+		_xAxisView.alpha = alpha;
+
+		_yAxisView.alpha = alpha;
+		_horizontalReferenceLineGraph.alpha = alpha;
+	}
+</code></pre>
+</div>
+
+<p>关于 <code class="highlighter-rouge">CGAffineTransform </code> 相信大多数人都有一定的使用经验，简单地说就是一个平面图形变化运算，经常在交互及动画中用到，相关的有CATransform3D可做3D变化运算，在这里不多赘述，详情可参照官方文档及<strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong>源码。</p>
+
+<h2 id="section-6">总结</h2>
+
+<p>至此，关于<strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong>中线型图的交互介绍完毕。 🍻🍻
+一个好的图形，不仅仅是造型漂亮精美，还需要动画及交互功能的搭配，才更有生机活力，更能让用户青睐。
+<strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong>的线型图，是集多种动画、交互功能与一体，并且有着不差的UI外观及自由定制的功能。
+至今，通过4篇文章的介绍，<strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong>线型图的介绍也全部完成，其中包括设计、实现、及一些cocoa touch类的介绍，既是我自己的一个开发笔记，也是与开发者们交流学习的文章，希望各位能提出宝贵的意见，多多指教。如果觉得我的<strong><a href="https://github.com/GeorgeWang03">github开源项目</a></strong>还不错的话，希望能得到你的星星✨点赞，谢谢。</p>
+
+<p>开发<strong><a href="https://github.com/GeorgeWang03/WYChart">WYChart</a></strong>并写了这好几篇文章，用了不少时间，计划中接下来是<strong>继续WYChart的后续开发</strong>以及<strong>关于WYChart扇形图的实现的介绍文章的撰写</strong>，不过由于工作的原因，有时候没办法挤出太多时间去做，当然我会尽我所能去完成，有什么不周到的地方请见谅。希望大家都为开源做贡献！</p>
 
 
                 <ul class="pager">
                     
                     <li class="previous">
-                        <a href="/2016/09/22/Github-%E7%9A%84-ssh-%E7%A7%98%E9%92%A5%E9%85%8D%E7%BD%AE%E4%BB%A5%E5%8F%8A%E7%99%BB%E5%BD%95%E9%97%AE%E9%A2%98/" data-toggle="tooltip" data-placement="top" title="Github 的 ssh 秘钥配置 以及登录问题">
+                        <a href="/2016/10/16/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E5%9B%9B-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E5%8A%A8%E7%94%BB%E7%9A%84%E5%AE%9E%E7%8E%B0/" data-toggle="tooltip" data-placement="top" title="WYChart介绍系列（四）线型图动画的实现">
                         Previous<br>
-                        <span>Github 的 ssh 秘钥配置 以及登录问题</span>
+                        <span>WYChart介绍系列（四）线型图动画的实现</span>
                         </a>
                     </li>
                     
-                    
-                    <li class="next">
-                        <a href="/2016/10/12/WYChart%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%B8%80-%E6%A6%82%E8%A7%88/" data-toggle="tooltip" data-placement="top" title="WYChart介绍系列（一）概览">
-                        Next<br>
-                        <span>WYChart介绍系列（一）概览</span>
-                        </a>
-                    </li>
                     
                 </ul>
 <hr>
@@ -394,8 +382,8 @@ var jiathis_config={
 <div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
 <script>
   var cloudTieConfig = {
-    url: "http://blog.oneinbest.com/2016/10/10/%E5%88%9B%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84-Github-%E5%BC%80%E6%BA%90%E5%BA%93%E5%B9%B6%E5%8F%91%E5%B8%83%E5%88%B0-Cocoapods-%E6%8F%92%E4%BB%B6%E5%BA%93/", 
-    sourceId: "http://blog.oneinbest.com/2016/10/10/%E5%88%9B%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84-Github-%E5%BC%80%E6%BA%90%E5%BA%93%E5%B9%B6%E5%8F%91%E5%B8%83%E5%88%B0-Cocoapods-%E6%8F%92%E4%BB%B6%E5%BA%93/",
+    url: "http://blog.oneinbest.com/2016/11/07/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%BA%94-%E4%BA%A4%E4%BA%92-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E8%A7%A6%E7%A2%B0%E7%82%B9%E4%BB%A5%E5%8F%8A%E7%BC%A9%E6%94%BE%E7%9A%84%E5%AE%9E%E7%8E%B0/", 
+    sourceId: "http://blog.oneinbest.com/2016/11/07/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%BA%94-%E4%BA%A4%E4%BA%92-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E8%A7%A6%E7%A2%B0%E7%82%B9%E4%BB%A5%E5%8F%8A%E7%BC%A9%E6%94%BE%E7%9A%84%E5%AE%9E%E7%8E%B0/",
     productKey: "1ed9a4bea780408289b61120e47c3586",
     target: "cloud-tie-wrapper"
   };

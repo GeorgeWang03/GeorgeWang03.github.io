@@ -5,9 +5,687 @@
     <description>iOS、创作与设计 | 王颖，iOS Engineer | 这里是王颖的个人博客，我们在这里分享技术，分享见闻，分享人生</description>
     <link>http://blog.oneinbest.com/</link>
     <atom:link href="http://blog.oneinbest.com/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Thu, 13 Oct 2016 16:21:49 +0800</pubDate>
-    <lastBuildDate>Thu, 13 Oct 2016 16:21:49 +0800</lastBuildDate>
+    <pubDate>Mon, 07 Nov 2016 22:09:33 +0800</pubDate>
+    <lastBuildDate>Mon, 07 Nov 2016 22:09:33 +0800</lastBuildDate>
     <generator>Jekyll v3.2.1</generator>
+    
+      <item>
+        <title>WYChart介绍系列（五）交互：线型图触碰点以及缩放的实现</title>
+        <description>&lt;p&gt;前面三张分别介绍了&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt;中线型图的总体规划、绘制、动画的实现，相信看完的读者对于如何实现一个带效果的线型图有一个整体的概念了，那么，再加上接下来要介绍的这一点，那么线型图的实现就完整了，那就是交互的实现。&lt;/p&gt;
+
+&lt;p&gt;线型图中主要的交互有两种，第一是曲线上点的触碰获取，第二是缩放。（其实还有一点，就是可滑动，由于相对简单，不展开）&lt;/p&gt;
+
+&lt;p&gt;本文将从以下两点介绍：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;可滑动触碰点实现&lt;/li&gt;
+  &lt;li&gt;缩放实现&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;第一点比较复杂，第二点相对简单，话不多说，现在开始吧。&lt;/p&gt;
+
+&lt;h2 id=&quot;section&quot;&gt;可滑动触碰点的实现&lt;/h2&gt;
+
+&lt;p&gt;这一点是基于读者对贝塞尔曲线有一定了解的基础上做介绍的，如果还不了解，参考前面系列文章第三篇。 👉 &lt;a href=&quot;&quot;&gt;前往&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;由前面文章的介绍，我们可知&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt;中线型图有三种线型，直线、波浪曲线和尖峰曲线。在触碰点实现中，我们把他们分成两个类别，第一个是直线，第二个是曲线，即波浪曲线和尖峰曲线。&lt;/p&gt;
+
+&lt;h4 id=&quot;section-1&quot;&gt;首先是直线&lt;/h4&gt;
+
+&lt;p&gt;获取直线上的点，由于触碰点的x代表直线上的x，但是y并不代表真实的y，所以这里第一步就是获取y（出发点），回想我们初高中学到的根据x求y值，那就是一次函数方程式了，可以根据斜率很快地得出某段直线x对应的y值。在&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt;的实现中，我们把曲线分成了n段进行绘制，看过源码的读者应该知道代码中是用&lt;code class=&quot;highlighter-rouge&quot;&gt;WYLineChartPathSegment&lt;/code&gt;表示曲线段的，其中主要属性如下：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	&lt;span class=&quot;k&quot;&gt;@property&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nonatomic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;WYLineChartPoint&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;startPoint&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;//起始点
+&lt;/span&gt;	&lt;span class=&quot;k&quot;&gt;@property&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nonatomic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;WYLineChartPoint&lt;/span&gt;   &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;endPoint&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;//结束点
+&lt;/span&gt;	&lt;span class=&quot;k&quot;&gt;@property&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nonatomic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;WYLineChartPoint&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;controlPoint&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;//控制点
+&lt;/span&gt;
+	&lt;span class=&quot;k&quot;&gt;@property&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nonatomic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CGFloat&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;coefficientA&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;//系数a
+&lt;/span&gt;	&lt;span class=&quot;k&quot;&gt;@property&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nonatomic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CGFloat&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;coefficientB&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;//系数b
+&lt;/span&gt;	&lt;span class=&quot;k&quot;&gt;@property&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nonatomic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CGFloat&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;coefficientC&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;//系数c
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;咋一看是表示贝塞尔曲线和一元二次方程式的，但是，只要系数a=0，那么二次方程式不就是一次方程式吗，因此，线段的方程式计算代码如下：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	 segment.coefficientA = 0;
+	 segment.coefficientB = (endPoint.y - startPoint.y) / (endPoint.x - startPoint.x); //斜率计算
+	 segment.coefficientC = startPoint.y - segment.coefficientB * startPoint.x; //常数计算
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;触碰点对应的y值计算方法如下：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	- (CGFloat)yValueCalculteFromQuadraticFormulaForPoint:(CGPoint)point {
+
+		CGFloat x = point.x;
+		return _coefficientA * powf(x, 2) + _coefficientB * x + _coefficientC;
+	}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;由于&lt;code class=&quot;highlighter-rouge&quot;&gt;_coefficientA = 0&lt;/code&gt;，故这里相当于 ` _coefficientB * x + _coefficientC&lt;code class=&quot;highlighter-rouge&quot;&gt; 即 &lt;/code&gt;y=bx+c`一次方程形式。&lt;/p&gt;
+
+&lt;p&gt;以上便是直线的y值获取方式。&lt;/p&gt;
+
+&lt;h4 id=&quot;section-2&quot;&gt;其次是曲线&lt;/h4&gt;
+
+&lt;p&gt;曲线上的x对应y值的获取，和直线一样，通过方程式获取，这时候你可能会想，那就通过二次方程式 &lt;code class=&quot;highlighter-rouge&quot;&gt;y=ax^2+bx+c&lt;/code&gt; 代入照搬吧！&lt;/p&gt;
+
+&lt;p&gt;那么问题来了，二次方程式的系数如何获取？贝塞尔曲线是否就是二次方程式绘制出来的？&lt;/p&gt;
+
+&lt;p&gt;对于后一个问题，答案是否定的。而要解第一个问题，就先要解决第二个问题。&lt;/p&gt;
+
+&lt;p&gt;所有贝塞尔曲线（二次，这里不讨论三次贝塞尔）是抛物线，但是抛物线不一定可以用二次方程式表示。故，要获取二次方程式的系数，就要确定我们所绘制的二次贝塞尔曲线可以用二次方程式表示，相关推理参照&lt;a href=&quot;http://math.stackexchange.com/questions/1257576/convert-quadratic-bezier-curve-to-parabola&quot;&gt;歪果仁的回答&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;也就是，二次曲线的三个控制点要满足以下关系：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-13-WYChart-S/bezier_cur_infer_1.png&quot; alt=&quot;bezier_cur_infer_1&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;即控制点在&lt;strong&gt;x轴上&lt;/strong&gt;必需是&lt;strong&gt;起始点&lt;/strong&gt;和&lt;strong&gt;终止点&lt;/strong&gt;的中点，&lt;code class=&quot;highlighter-rouge&quot;&gt;x2 = (x1 + x3)/2&lt;/code&gt;（为什么是这样，唯一知道的就是控制点x一定要是起始点和终止点之间，这样才不会导致一个x对应两个y值，但为什么是&lt;code class=&quot;highlighter-rouge&quot;&gt;x2 = (x1 + x2)/2&lt;/code&gt;，这个还需要推论，有读者知道，望指教），幸运的是，&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt;中的曲线符合这个关系，看过前面文章的读者应该记得，绘制平滑曲线时，我们便是取中点绘制曲线的。&lt;/p&gt;
+
+&lt;p&gt;由以下贝塞尔曲线绘制图：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-13-WYChart-S/two_times_bezier.gif&quot; alt=&quot;two_times_bezier&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;再结合上述歪果仁的回答，我们知道，起始点的斜率为起点和控制点连线的斜率，终点斜率为终点与控制点连线的斜率（这个结论其实还不严谨，需要一个证明过程，如果有读者知道，望指教)，于是有以下斜率关系：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-13-WYChart-S/bezier_cur_infer_2.png&quot; alt=&quot;bezier_cur_infer_1&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;再由以上公式做推导，可以得到以下关系，进而求出系数a、b：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-13-WYChart-S/bezier_cur_infer_3.png&quot; alt=&quot;bezier_cur_infer_1&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;有了系数a、b，那么参数c就可以很容易求出了。于是，触碰点的曲线y值就可以求出，带入二次方程，代码实现与上文直线求值一致。
+因此，根据触碰点的变化，我们就可以求出曲线上对应的点了。&lt;/p&gt;
+
+&lt;p&gt;上述直线与曲线y值求出，但还有一点没提到，就是：&lt;/p&gt;
+&lt;h4 id=&quot;section-3&quot;&gt;具体线段的寻找&lt;/h4&gt;
+
+&lt;p&gt;我们的线由很多个线段组成，在求出具体的值之前，还需要寻找具体的线段。
+在代码中，我们定义了一个数组用于存放所有&lt;code class=&quot;highlighter-rouge&quot;&gt;WYLineChartPathSegment&lt;/code&gt;线段，在获取触碰点时，遍历线段集合（后续优化可以采用二分查找提高效率），找到其中满足&lt;code class=&quot;highlighter-rouge&quot;&gt;x&amp;lt;endPoint.x &amp;amp;&amp;amp; x&amp;gt;startPoint.x&lt;/code&gt;的线段，然后带入线段所属方程式，即可得到指定的点；如果线段不存在，意味着超出了线的范围。&lt;/p&gt;
+
+&lt;h4 id=&quot;section-4&quot;&gt;最后&lt;/h4&gt;
+
+&lt;p&gt;我们需要定义一个长按手势，用于启动并移动，然后把对应视图中的点转换成线段上的点，最后更新触碰点的位置，需要时做动画。&lt;/p&gt;
+
+&lt;p&gt;以上便是触碰点的实现，最初需要理解掌握贝塞尔曲线的概念及部分原理，然后是点转换的分析，接着是直线与曲线的方程式，再者是二次贝塞尔曲线与二次方程式的关系，最后是点的转换及绘制，分而治之，逐个击破，看似有点难度的触碰点实现也就很简单了。&lt;/p&gt;
+
+&lt;h2 id=&quot;section-5&quot;&gt;缩放的实现&lt;/h2&gt;
+
+&lt;p&gt;在&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt;线型图中，我们实现了一个捏合手势（&lt;code class=&quot;highlighter-rouge&quot;&gt;UIPinchGestureRecognizer&lt;/code&gt;）做图形缩放的交互功能。原理其实挺简单，就是利用捏合手势获取到的缩放系数scale，对线图做水平缩放，缩放时采用CGAffineTransform来实现，并做透明度随缩放系数scale的变化，实现过渡效果，让交互更加自然。实现代码大概如下：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	- (void)handlePinchGesture:(UIPinchGestureRecognizer *)recognize {
+    	if (!_pinchable) return;
+		[self transformComponentsWithPinchScale:recognize.scale];
+		...
+		// 根据手势状态的变化通知代理
+		...
+	}
+	
+	- (void)transformComponentsWithPinchScale:(CGFloat)scale {
+
+		CGAffineTransform transform = CGAffineTransformIdentity;
+		transform = CGAffineTransformScale(transform, scale, 1.0);
+
+		CGFloat alpha = scale * 0.3; // 转换为透明度变化系数
+
+		_lineGraph.transform = transform; // 线图前景缩放
+		_lineGraph.alpha = alpha; 		    // 线图前景透明度变化
+
+		_verticalReferenceLineGraph.transform = transform; // 垂直方向参考线视图缩放
+		_verticalReferenceLineGraph.alpha = alpha; // 垂直方向参考线视图透明度变化
+
+		_xAxisView.transform = transform; // x轴前景缩放
+		_xAxisView.alpha = alpha;
+
+		_yAxisView.alpha = alpha;
+		_horizontalReferenceLineGraph.alpha = alpha;
+	}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;关于 &lt;code class=&quot;highlighter-rouge&quot;&gt;CGAffineTransform &lt;/code&gt; 相信大多数人都有一定的使用经验，简单地说就是一个平面图形变化运算，经常在交互及动画中用到，相关的有CATransform3D可做3D变化运算，在这里不多赘述，详情可参照官方文档及&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt;源码。&lt;/p&gt;
+
+&lt;h2 id=&quot;section-6&quot;&gt;总结&lt;/h2&gt;
+
+&lt;p&gt;至此，关于&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt;中线型图的交互介绍完毕。 🍻🍻
+一个好的图形，不仅仅是造型漂亮精美，还需要动画及交互功能的搭配，才更有生机活力，更能让用户青睐。
+&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt;的线型图，是集多种动画、交互功能与一体，并且有着不差的UI外观及自由定制的功能。
+至今，通过4篇文章的介绍，&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt;线型图的介绍也全部完成，其中包括设计、实现、及一些cocoa touch类的介绍，既是我自己的一个开发笔记，也是与开发者们交流学习的文章，希望各位能提出宝贵的意见，多多指教。如果觉得我的&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03&quot;&gt;github开源项目&lt;/a&gt;&lt;/strong&gt;还不错的话，希望能得到你的星星✨点赞，谢谢。&lt;/p&gt;
+
+&lt;p&gt;开发&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt;并写了这好几篇文章，用了不少时间，计划中接下来是&lt;strong&gt;继续WYChart的后续开发&lt;/strong&gt;以及&lt;strong&gt;关于WYChart扇形图的实现的介绍文章的撰写&lt;/strong&gt;，不过由于工作的原因，有时候没办法挤出太多时间去做，当然我会尽我所能去完成，有什么不周到的地方请见谅。希望大家都为开源做贡献！&lt;/p&gt;
+</description>
+        <pubDate>Mon, 07 Nov 2016 06:00:00 +0800</pubDate>
+        <link>http://blog.oneinbest.com/2016/11/07/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%BA%94-%E4%BA%A4%E4%BA%92-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E8%A7%A6%E7%A2%B0%E7%82%B9%E4%BB%A5%E5%8F%8A%E7%BC%A9%E6%94%BE%E7%9A%84%E5%AE%9E%E7%8E%B0/</link>
+        <guid isPermaLink="true">http://blog.oneinbest.com/2016/11/07/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%BA%94-%E4%BA%A4%E4%BA%92-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E8%A7%A6%E7%A2%B0%E7%82%B9%E4%BB%A5%E5%8F%8A%E7%BC%A9%E6%94%BE%E7%9A%84%E5%AE%9E%E7%8E%B0/</guid>
+        
+        <category>WYChart</category>
+        
+        <category>开源</category>
+        
+        <category>绘制</category>
+        
+        <category>交互</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>WYChart介绍系列（四）线型图动画的实现</title>
+        <description>&lt;p&gt;在前面的文章中有提到WYChart中线型图使用的是CoreAnimation框架，动画的制作也是使用里面一系列的效果。&lt;/p&gt;
+
+&lt;p&gt;本文将分为下面几个部分做讲解：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;CoreAnimation的动画类CABasicAnimation及其子类&lt;/li&gt;
+  &lt;li&gt;WYChart中线型图采用的动画类型&lt;/li&gt;
+  &lt;li&gt;CADisplayLink+UIViewAnimation+CALayer的动画模式&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;那么，开始吧 👇👇&lt;/p&gt;
+
+&lt;h3 id=&quot;coreanimationcabasicanimation&quot;&gt;CoreAnimation的动画类CABasicAnimation及相关类&lt;/h3&gt;
+
+&lt;p&gt;&lt;a href=&quot;&quot;&gt;官方文档&lt;/a&gt;对CABasicAnimation的介绍是这样的：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;CABasicAnimation provides basic, single-keyframe animation capabilities for a layer property. 
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;也就是，CABasicAnimation为Layer的属性提供基础，简单的关键帧动画。至于哪些属性能做动画，在各个Layer的头文件中有声明，如果是&lt;code class=&quot;highlighter-rouge&quot;&gt;animatable&lt;/code&gt;的，就是可以做动画的。&lt;/p&gt;
+
+&lt;p&gt;CABasicAnimation有几个核心的属性：duration,fromValue,toValue以及keyPath，后者是通过工厂方法&lt;code class=&quot;highlighter-rouge&quot;&gt;animationWithKeyPath:&lt;/code&gt;初始化，也是用于动画的属性。前三个属性，duration用于定义动画的时长，fromValue和toValue分别是属性开始的值和结束的值，它们都只接受对象类型的变量，也就是如果是数值类型，需要先转化为NSNumber对象类型。比如，现在对一个图层做由透明到不透明的动画，应该这样做：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;CABasicAnimation  *animation = [CABasicAnimation animationWithKeyPath:@&quot;opacity&quot;];
+animation.duration = 1.0;
+animation.fromValue = @(0.0);
+animation.toValue = @(1.0);
+[layer addAnimation:animation forKey:@&quot;opacity&quot;];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;在&lt;code class=&quot;highlighter-rouge&quot;&gt;CAAnimation.h&lt;/code&gt;头文件中，可以看到&lt;strong&gt;CABasicAnimation&lt;/strong&gt;是继承自&lt;strong&gt;CAPropertyAnimation&lt;/strong&gt;，后者是继承自&lt;strong&gt;CAAnimation&lt;/strong&gt;，关于&lt;strong&gt;CAPropertyAnimation&lt;/strong&gt;和&lt;strong&gt;CAAnimation&lt;/strong&gt;这里不展开介绍，有兴趣的自行Google。
+重点在于，从头文件中我们可以看到除了&lt;strong&gt;CABasicAnimation&lt;/strong&gt;，还有&lt;strong&gt;CASpringAnimation&lt;/strong&gt;、&lt;strong&gt;CAKeyframeAnimation&lt;/strong&gt;以及&lt;strong&gt;CATransition&lt;/strong&gt;。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;CASpringAnimation&lt;/strong&gt;继承自CABasicAnimation，用于实现弹簧动画；它有几个属性用于设置弹簧的效果，比如用于设置重量的&lt;code class=&quot;highlighter-rouge&quot;&gt;mass&lt;/code&gt;，越大弹簧的压缩越严重；又如用于设置劲度系数的&lt;code class=&quot;highlighter-rouge&quot;&gt;stiffness&lt;/code&gt;，系数越大，动画开始时产品的力气越大，速度越快；还有阻尼系数&lt;code class=&quot;highlighter-rouge&quot;&gt;damping&lt;/code&gt;，越大弹簧动画停止越快；最后是初始速度&lt;code class=&quot;highlighter-rouge&quot;&gt;initialVelocity&lt;/code&gt;，表示一开始的速度。值得注意的是，有一个&lt;code class=&quot;highlighter-rouge&quot;&gt;readonly&lt;/code&gt;的属性&lt;code class=&quot;highlighter-rouge&quot;&gt;settlingDuration&lt;/code&gt;，用于估算动画的时间。为什么需要这个估算时间，因为如果将前面提到的&lt;code class=&quot;highlighter-rouge&quot;&gt;duration&lt;/code&gt;属性设置小于这个估算时间，那动画会在弹簧停止之前便结束，这样看起来很奇怪，因此需要这个估算时间。不过，实践证明，这个估算时间也不怎么靠谱，所以，实际操作时还是要自己调试着。&lt;/p&gt;
+
+&lt;p&gt;CAKeyframeAnimation继承自CAPropertyAnimation，用于关键帧动画；他有一个必选属性&lt;code class=&quot;highlighter-rouge&quot;&gt;values&lt;/code&gt;，表示&lt;code class=&quot;highlighter-rouge&quot;&gt;keypath&lt;/code&gt;的变化过程；此外，有一些可选的属性。&lt;code class=&quot;highlighter-rouge&quot;&gt;path&lt;/code&gt;可选属性，一般用于轨迹动画，如旋转、抛物线等运动，当它不为空时，&lt;code class=&quot;highlighter-rouge&quot;&gt;values&lt;/code&gt;属性被覆盖；&lt;code class=&quot;highlighter-rouge&quot;&gt;keyTimes&lt;/code&gt;属性声明在&lt;code class=&quot;highlighter-rouge&quot;&gt;values&lt;/code&gt;中的值在哪个时间起作用；还有诸如&lt;code class=&quot;highlighter-rouge&quot;&gt;timingFunctions&lt;/code&gt;、&lt;code class=&quot;highlighter-rouge&quot;&gt;calculationMode&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;rotationMode&lt;/code&gt;等属性，限于篇幅，这里不展开细讲。在后面的博文中，会开一篇细讲这几个动画。&lt;/p&gt;
+
+&lt;p&gt;CATransition继承自CAAnimation，用于自定义页面跳转。在WYChart中我们不会用到，故也不展开讲，只是说明在CAAnimation族中有这个类。&lt;/p&gt;
+
+&lt;p&gt;以上是CoreAnimation的动画类CABasicAnimation及相关类的介绍，应该说CABasicAnimation是基础，也是用得最多的，CASpringAnimation和CAKeyframeAnimation可以做出一些比较特别的动画。&lt;/p&gt;
+
+&lt;h3 id=&quot;wychart&quot;&gt;WYChart中线型图采用的动画类型&lt;/h3&gt;
+
+&lt;p&gt;在WYChart的线型图中，目前一共有五种动画，分别如下：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kWYLineChartAnimationDrawing // 绘制动画
+kWYLineChartAnimationAlpha   // 透明度动画
+kWYLineChartAnimationWidth   // 宽度渐变动画
+kWYLineChartAnimationRise    // 上升动画
+kWYLineChartAnimationSpring  // 弹簧动画
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;前四个动画都相对比较简单，只要使用&lt;strong&gt;CABasicAnimation&lt;/strong&gt;就可以实现。例如绘制动画，实现如下：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;CABasicAnimation  *animation = [CABasicAnimation animationWithKeyPath:@&quot;strokeEnd&quot;];
+animation.duration = _animationDuration;
+animation.fromValue = @(0.0);
+animation.toValue = @(1.0);
+[lineLayer addAnimation:animation forKey:@&quot;strokeEnd&quot;];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;使用&lt;code class=&quot;highlighter-rouge&quot;&gt;strokeEnd&lt;/code&gt;属性做绘制动画，效果如下：
+&lt;img src=&quot;/img/post_img/2016-10-13-WYChart-S/LineAnimation_Drawing.gif&quot; alt=&quot;Animation_Drawing&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;不过这四个动画里面，&lt;code class=&quot;highlighter-rouge&quot;&gt;kWYLineChartAnimationRise&lt;/code&gt;还要对&lt;strong&gt;path&lt;/strong&gt;做一下处理。我们要实现线条由下往上升，于是需要两个预先定义好的&lt;strong&gt;path&lt;/strong&gt;，一个是最终状态，也就是最初构建的那个，另一个是初始状态，其每个点的Y值都比初始的值小7个单位的距离在代码中我们这样实现：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;[linePath addQuadCurveToPoint:pathSegment.endPoint.point controlPoint:pathSegment.controlPoint.point];
+[linePathLower addQuadCurveToPoint:[self pointBelowPoint:pathSegment.endPoint.point forDistance:DEFAULT_RISE_HEIGHT] controlPoint:[self pointBelowPoint:pathSegment.controlPoint.point forDistance:DEFAULT_RISE_HEIGHT]];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;linePath&lt;/code&gt;是最终状态，&lt;code class=&quot;highlighter-rouge&quot;&gt;linePathLower&lt;/code&gt;为初始状态，&lt;code class=&quot;highlighter-rouge&quot;&gt;DEFAULT_RISE_HEIGHT &lt;/code&gt;为上升高度。&lt;/p&gt;
+
+&lt;p&gt;以上都是&lt;strong&gt;CABasicAnimation&lt;/strong&gt;的简单应用，真正重要的是接下来要讲的 👇👇&lt;/p&gt;
+
+&lt;h3 id=&quot;cadisplaylinkuiviewanimationcalayer&quot;&gt;CADisplayLink+UIViewAnimation+CALayer的动画模式&lt;/h3&gt;
+
+&lt;p&gt;在上文中还少了&lt;code class=&quot;highlighter-rouge&quot;&gt;kWYLineChartAnimationSpring&lt;/code&gt;动画没讲，因为涉及到的内容比较复杂，在这里细讲。&lt;/p&gt;
+
+&lt;p&gt;我们要实现的效果是：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-13-WYChart-S/LineAnimation_Spring.gif&quot; alt=&quot;Animation_Drawing&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;你可能会想到使用&lt;code class=&quot;highlighter-rouge&quot;&gt;CASpringAnimation&lt;/code&gt;结合&lt;code class=&quot;highlighter-rouge&quot;&gt;path&lt;/code&gt;属性来实现，没错，最初我也是采用这种做法，但不幸的是，其实际效果和我们的想去甚远，甚至扭曲严重。因此这种做法行不通，那是否还有其他途径？ 必需的！😜&lt;/p&gt;
+
+&lt;p&gt;那就是CADisplayLink+UIViewAnimation+CALayer的动画模式，下面我们先对这几个概念做个介绍。&lt;/p&gt;
+
+&lt;h4 id=&quot;cadisplaylink&quot;&gt;CADisplayLink&lt;/h4&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developer.apple.com/reference/quartzcore/cadisplaylink&quot;&gt;官方文档&lt;/a&gt;对&lt;strong&gt;CADisplayLink&lt;/strong&gt;的介绍如下：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;A CADisplayLink object is a timer object that allows your application to synchronize its drawing to the refresh rate of the display.
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;也就是&lt;strong&gt;CADisplayLink可以让你的绘制和屏幕刷新频率同步&lt;/strong&gt;。&lt;/p&gt;
+
+&lt;p&gt;用法如下：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;CADisplayLink  *displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(handleScreenUpdate)];
+[_displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;这样子，假如屏幕的刷新频率是60pf/s，那么每秒&lt;code class=&quot;highlighter-rouge&quot;&gt;handleScreenUpdate&lt;/code&gt;会被调用60次，我们可以在里面做视图的更新操作。不过要注意的是，更新操作耗费时间不能超过1/60s，否则会掉帧。如果不想调用太频繁，可以设置&lt;code class=&quot;highlighter-rouge&quot;&gt;frameInterval&lt;/code&gt;的值，比如每秒只调用30次，那么&lt;code class=&quot;highlighter-rouge&quot;&gt;frameInterval = 30&lt;/code&gt;。&lt;/p&gt;
+
+&lt;p&gt;有些读者可能会想到另一个相似的工具&lt;code class=&quot;highlighter-rouge&quot;&gt;NSTimer&lt;/code&gt;，不过它们还是有很大区别的，区别如下：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;CADisplayLink是和屏幕刷新频率一致的，而NSTimer则不然，只是提供一个循环调用的功能，遇到NSRunLoop阻塞时还会延迟&lt;/li&gt;
+  &lt;li&gt;NSTimer主要体现在控制循环次数上，而CADisplayLink则主要强调与屏幕刷新相关&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;因此，对与实时性要求高的地方，使用CADisplayLink比较适合，比如我们要实现的动画。&lt;/p&gt;
+
+&lt;h4 id=&quot;uiviewanimation&quot;&gt;UIViewAnimation&lt;/h4&gt;
+
+&lt;p&gt;相信大家平时也使用过UIView的animation方法做过一些简单的动画，比如：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;[UIView animateWithDuration:_animationDuration + 0.5
+                          delay:0.0
+         usingSpringWithDamping:0.15
+          initialSpringVelocity:1.40
+                        options:0
+                     animations:^{
+                         ...
+                     } completion:^(BOOL finished) {
+                         ...
+                     }];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;做弹簧动画，参数和我们上文讲到的&lt;strong&gt;CASpringAnimation&lt;/strong&gt;有点相似。&lt;/p&gt;
+
+&lt;h4 id=&quot;calayer&quot;&gt;CALayer&lt;/h4&gt;
+
+&lt;p&gt;至于CALayer，由于上一篇文章介绍过，不赘述。但我们这里要介绍的，确切说应该是包含在UIView&lt;strong&gt;图层树&lt;/strong&gt;中的Layer。关于图层树，在我的&lt;a href=&quot;&quot;&gt;另一篇文章&lt;/a&gt;有介绍过。这里再简单介绍一下，大概就是UIView运行时在系统内部的Layer图层树分为三种，分别为模型层、展示层和渲染层，模型层就是持有view显示属性的view.layer；而展示层则是在动画执行时实时反映当前图层状态，为view.layer.presentationLayer；渲染层是私有的，用于将模型层异步渲染成为表示层。而WYChart中用得最多的莫过于展示层了，比如我们想获得动画执行时的view的位置，如果简单的通过view.frame.origin或者view.layer.position，那么获取到的结果并不是我们想要的，只能通过展示层view.layer.presentation.position才能获得临时位置，这一点在下文比较重要⚠️⚠️。上文提到的模式，确切的说应该是&lt;strong&gt;CADisplayLink+UIViewAnimation+presentationLayer的动画模式&lt;/strong&gt;。&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;上面介绍了这么多，其实都是为我们接下来要介绍的模式，&lt;strong&gt;CADisplayLink+UIViewAnimation+CALayer的动画模式&lt;/strong&gt;，所服务的。&lt;/p&gt;
+
+&lt;p&gt;上文提到，我们要实现的线型图弹簧效果如下，但是用CASpringAnimation效果却相去甚远。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-13-WYChart-S/LineAnimation_Spring.gif&quot; alt=&quot;Animation_Drawing&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;确保你对上面概念了解清楚。
+这时候我们就可以结合上面提到的这种模式来实现。&lt;/p&gt;
+
+&lt;p&gt;手动实现一个线型图的弹簧动画，需要以下几个步骤：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;获取一系列和屏幕刷新频率相近的&lt;strong&gt;弹簧参数&lt;/strong&gt;&lt;/li&gt;
+  &lt;li&gt;根据弹簧参数构建一系列的贝塞尔曲线&lt;/li&gt;
+  &lt;li&gt;在CADisplayLink每一帧刷新时刷新线型图曲线&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;要获取一系列和屏幕刷新频率相近的&lt;strong&gt;弹簧参数&lt;/strong&gt;，有两种方式，一种是自己模拟，也就是通过某个函数，类似的比如电波，但是经过一番搜索和对比，这个途径并不直观，有兴趣的童鞋可以自己探索一番；另一种方式，就是就近取材，UIViewAnimation+presentationLayer.position。&lt;/p&gt;
+
+&lt;p&gt;做法是，1.定义N个透明的view，让它们做springAnimation&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;[UIView animateWithDuration:_animationDuration + 0.5
+                          delay:0.0
+         usingSpringWithDamping:0.15
+          initialSpringVelocity:1.40
+                        options:0//UIViewAnimationOptionCurveEaseOut
+                     animations:^{
+                         [_animationControlPoints enumerateObjectsUsingBlock:^(UIView *view, NSUInteger idx, BOOL * _Nonnull stop) {
+                         	// 遍历所有模拟点视图，做动画
+                             view.center = CGPointMake(view.center.x, ((WYLineChartPoint *)_parentView.points[idx]).y);
+                         }];
+                     } completion:^(BOOL finished) {
+                         if (finished) {
+                             _displayLink.paused = true;
+                             self.userInteractionEnabled = true;
+                         }
+                     }];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;2.开启CADisplayLink，在执行函数中通过view.layer.presentationLayer.position.x取得view与原点的偏离值
+3.然后对所有给出的数据点的y值与偏离值做运算，得出新的y值&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;[_parentView.points enumerateObjectsUsingBlock:^(WYLineChartPoint *point, NSUInteger idx, BOOL * _Nonnull stop) {
+    UIView *view = _animationControlPoints[idx];
+    point.x = [view wy_centerForPresentationLayer:true].x;// 通过presentationLayer.position获得实时位置
+    point.y = [view wy_centerForPresentationLayer:true].y;// 通过presentationLayer.position获得实时位置
+}];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;4.重新构建贝塞尔曲线应用到线型图上，并完成一帧的刷新&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;UIBezierPath *linePath = [self currentLinePathForWave];
+_lineShapeLayer.path = linePath.CGPath;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;这便是我们的弹簧动画手动实现过程  🍻🍻&lt;/p&gt;
+
+&lt;h2 id=&quot;section&quot;&gt;总结&lt;/h2&gt;
+
+&lt;p&gt;本文我们从CABasicAnimation及其相关类介绍开始，大致讲述了CoreAniamtion的动画类型及简单用法，接着介绍了WYChart中线型图的动画类型及部分简单实现方式，最后介绍了最重要的&lt;strong&gt;CADisplayLink+UIViewAnimation+CALayer的动画模式&lt;/strong&gt;。本文介绍到的内容，应该是每个iOS开发者都要了解的，因为很多UI层的内容都和它们息息相关。例如CADisplayLink+presentationLayer的模式，还可以结合UIDynamic做出很多接近现实的逼真的动画。总而言之，个人认为本文的内容还是比较有价值的，对于我自己，作为一个笔记，可以时常温习，对于新手开发者，又是一个提高的教程，希望它可以帮到你，谢谢你的阅读。&lt;/p&gt;
+
+&lt;h4 id=&quot;section-1&quot;&gt;相关文章&lt;/h4&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://objccn.io/issue-12-0/&quot;&gt;Objc关于动画的介绍&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://developer.apple.com/reference/quartzcore&quot;&gt;官方对QuartzCore的介绍&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/CoreAnimation_guide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40004514&quot;&gt;官方的Animation指导&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://zsisme.gitbooks.io/ios-/content/index.html&quot;&gt;GitBook上一本关于动画的书&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        <pubDate>Sun, 16 Oct 2016 00:46:00 +0800</pubDate>
+        <link>http://blog.oneinbest.com/2016/10/16/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E5%9B%9B-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E5%8A%A8%E7%94%BB%E7%9A%84%E5%AE%9E%E7%8E%B0/</link>
+        <guid isPermaLink="true">http://blog.oneinbest.com/2016/10/16/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E5%9B%9B-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E5%8A%A8%E7%94%BB%E7%9A%84%E5%AE%9E%E7%8E%B0/</guid>
+        
+        <category>WYChart</category>
+        
+        <category>开源</category>
+        
+        <category>动画</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>WYChart介绍系列（三）线型图绘制</title>
+        <description>&lt;p&gt;绘制是整个线型图实现的基础，如何绘制一个线型图？&lt;/p&gt;
+
+&lt;p&gt;在&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt;中，我采用的是CAShapeLayer+UIBezierPath的组合，在这之前考虑过采用CoreGraphic做绘制，但是由于CALayer有CABasicAnimation一系列的动画支持，而且CoreAnimation框架都是Objective-C封装，相比CoreGraphic的C语言风格，更方便使用，所以最终还是采用CAShapeLayer+UIBezierPath的组合。此外，渐变前景的绘制用到CALayer的子类CAGradientLayer。&lt;/p&gt;
+
+&lt;p&gt;线图中绘制的内容很多，但是总体并不复杂，&lt;strong&gt;主要&lt;/strong&gt;还是在以下几点：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;CALayer及CAShapeLayer的使用&lt;/li&gt;
+  &lt;li&gt;UIBezierPath的使用&lt;/li&gt;
+  &lt;li&gt;绘制平滑的曲线及其涉及的计算&lt;/li&gt;
+  &lt;li&gt;CAGradientLayer绘制渐变层&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;所以，本文也从上面四点介绍WYChart线型图的实现。&lt;/p&gt;
+
+&lt;h3 id=&quot;calayercashapelayer&quot;&gt;CALayer及CAShapeLayer的使用&lt;/h3&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developer.apple.com/reference/quartzcore/calayer&quot;&gt;官方文档&lt;/a&gt;对CALayer的介绍时这样的：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;The CALayer class manages image-based content and allows you to perform animations on that content. Layers are often used to provide the backing store for views but can also be used without a view to display content. 
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;简单地说就是CALayer类族管理与图像有关的内容并可以让你在上面做动画；Layer是View的基础，而且可以在View之外自己展示内容。&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://objccn.io/issue-12-4/&quot;&gt;objc.io&lt;/a&gt;对CALayer是这样介绍的：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;在 iOS 中，所有的 view 都是由一个底层的 layer 来驱动的。view 和它的 layer 之间有着紧密的联系，view 其实直接从 layer 对象中获取了绝大多数它所需要的数据。在 iOS 中也有一些单独的 layer，比如 AVCaptureVideoPreviewLayer 和 CAShapeLayer，它们不需要附加到 view 上就可以在屏幕上显示内容。两种情况下其实都是 layer 在起决定作用。
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;可知layer是很重要的，如果对CALayer还不是很了解的话，可以从以上链接内容了解一下。&lt;/p&gt;
+
+&lt;p&gt;CAShapeLayer是CALayer的一个子类，主要是渲染绘制在上面的贝塞尔线集合的形状。&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developer.apple.com/reference/quartzcore/cashapelayer&quot;&gt;官方文档&lt;/a&gt;对CAShapeLayer的介绍是这样的：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;The CAShapeLayer class draws a cubic Bezier spline in its coordinate space. The shape is composited between the layer's contents and its first sublayer.
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;结合上面所述，我们知道可以在CAShapeLayer上绘制线型图。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;如何使用CAShapeLayer ？&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;CAShapeLayer使用简单，只要初始化并添加到view.layer上就可以绘制。&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	CAShapeLayer *layer = [CAShapeLayer layer];
+	...
+	layer.path = path;
+	//strokeColor, fillColor..的属性设置
+	...
+	[view.layer addSublayer:layer];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;CAShapeLayer的主要属性有：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;path : UIBezierPath // 决定Layer绘制形状的属性&lt;/li&gt;
+  &lt;li&gt;strokeColor : UIColor // 决定线条的颜色&lt;/li&gt;
+  &lt;li&gt;fillColor : UIColor // 决定被线条包围的封闭区域的填充颜色&lt;/li&gt;
+  &lt;li&gt;lineWidth : CGFloat // 线条的宽度&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;此外还有其它的，如用于绘制虚线的属性，都可以对绘制形状进行定制。&lt;/p&gt;
+
+&lt;h3 id=&quot;uibezierpath&quot;&gt;UIBezierPath的使用&lt;/h3&gt;
+
+&lt;p&gt;&lt;strong&gt;首先&lt;/strong&gt;，是对贝塞尔曲线的理解，他是一个怎样的东西？&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://zh.wikipedia.org/wiki/%E8%B2%9D%E8%8C%B2%E6%9B%B2%E7%B7%9A&quot;&gt;维基百科的介绍&lt;/a&gt;(需要翻墙)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;关于曲线的历史就不做介绍了，贝塞尔曲线最初用于汽车流体结构的设计。其原理就是通过所给出的点，以及&lt;strong&gt;相关方程&lt;/strong&gt;，根据&lt;strong&gt;时刻t&lt;/strong&gt;在某个[0,x]区间内计算出的所有&lt;strong&gt;点连成的直线／曲线&lt;/strong&gt;，称为贝塞尔曲线。&lt;/p&gt;
+
+&lt;p&gt;贝塞尔曲线可分为一次曲线、二次曲线和高阶曲线，二相关方程表示如下：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;一次曲线&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-13-WYChart-S/one_time_bezier.png&quot; alt=&quot;one_time_bezier&quot; /&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;二次曲线&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-13-WYChart-S/two_times_bezier.png&quot; alt=&quot;one_time_bezier&quot; /&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;高阶曲线&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-13-WYChart-S/high_bezier.png&quot; alt=&quot;one_time_bezier&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;不同曲线的绘制过程如下，注意方程计算出的&lt;strong&gt;点&lt;/strong&gt;的移动路径，即为曲线：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;一次曲线，其实就是直线&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-13-WYChart-S/one_time_bezier.gif&quot; alt=&quot;one_time_bezier&quot; /&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;二次曲线&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-13-WYChart-S/two_times_bezier.gif&quot; alt=&quot;one_time_bezier&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;例如二次贝塞尔曲线，其实方程中的P1就是UIBezierPath中用到的&lt;strong&gt;控制点&lt;/strong&gt;（controlPoint)；以此类推，可知一次曲线没有控制点。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;其次&lt;/strong&gt;，是UIKit中的UIBezierPath的使用方法&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developer.apple.com/reference/uikit/uibezierpath&quot;&gt;官方文档&lt;/a&gt;对UIBezierPath的介绍是这样的：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;The UIBezierPath class lets you define a path consisting of straight and curved line segments and render that path in your custom views. 
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;就是，UIBezierPath可以让你在自定义view上面绘制直线和曲线段。&lt;/p&gt;
+
+&lt;p&gt;其实有了上面对于贝塞尔曲线的介绍，使用&lt;strong&gt;UIBezierPath&lt;/strong&gt;进行绘制应该比较简单了。&lt;/p&gt;
+
+&lt;p&gt;UIBezierPath提供的方法有两种，一种是构造好的类方法，另一种是手动构造的，也是我们主要介绍的。&lt;/p&gt;
+
+&lt;p&gt;构造好的类方法用于创建矩形、椭圆形、圆形、弧线等，方法如下所示：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;+ (instancetype)bezierPathWithRect:(CGRect)rect; //矩形
++ (instancetype)bezierPathWithOvalInRect:(CGRect)rect; //椭圆
++ (instancetype)bezierPathWithRoundedRect:(CGRect)rect cornerRadius:(CGFloat)cornerRadius; // 圆角矩形
++ (instancetype)bezierPathWithArcCenter:(CGPoint)center radius:(CGFloat)radius startAngle:(CGFloat)startAngle endAngle:(CGFloat)endAngle clockwise:(BOOL)clockwise; //弧形
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;手动构造的方法有以下几种：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;- (void)moveToPoint:(CGPoint)point; // 从某个点开始绘制
+- (void)addLineToPoint:(CGPoint)point; // 从当前点添加直线到某个点
+- (void)addCurveToPoint:(CGPoint)endPoint controlPoint1:(CGPoint)controlPoint1 controlPoint2:(CGPoint)controlPoint2; // 从当前点P0，添加三次曲线到某个点P3，这个在上面的贝塞尔曲线介绍有提到
+- (void)addQuadCurveToPoint:(CGPoint)endPoint controlPoint:(CGPoint)controlPoint; // 从当前点P0，添加二次曲线到某个点P2，控制点为P1，这个在上面的贝塞尔曲线介绍有提到
+- (void)addArcWithCenter:(CGPoint)center radius:(CGFloat)radius startAngle:(CGFloat)startAngle endAngle:(CGFloat)endAngle clockwise:(BOOL)clockwise NS_AVAILABLE_IOS(4_0); //添加弧
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;假如我们要绘制一段二次贝塞尔曲线，可以这样画：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;UIBezierPath *path = [UIBezierPath bezierPath];
+[path moveToPoint:p0];
+[path addQuadCurveToPoint:p2 controlPoint:p1];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;以上为贝塞尔曲线的介绍和UIBezierPath的用法。&lt;/p&gt;
+
+&lt;h3 id=&quot;section&quot;&gt;绘制平滑的曲线及其涉及的计算&lt;/h3&gt;
+
+&lt;p&gt;如&lt;a href=&quot;&quot;&gt;上一篇文章&lt;/a&gt;所介绍的，WYChart中线型图类型有直线、波浪型曲线、尖峰型曲线等几种，关于直线，如上文介绍的，我们可以直接用&lt;code class=&quot;highlighter-rouge&quot;&gt;- (void)addLineToPoint:(CGPoint)point&lt;/code&gt;便可以绘制，这里我们主要介绍平滑的波浪型曲线的绘制，至于尖峰型曲线，如果你了解了波浪形曲线的画法，相信就很简单了。&lt;/p&gt;
+
+&lt;p&gt;确保你记住上文中提到的&lt;strong&gt;贝塞尔曲线的概念&lt;/strong&gt;后，请看下图：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-13-WYChart-S/Draw_Curve.jpg&quot; alt=&quot;Draw_Curve&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;假设p1，p2，p3是给出的数据中连续三个点，绘制一段平滑的贝塞尔曲线，需要满足以下四种条件：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;某个点前后的点的值都比该点大，那么该点处于这段曲线的最底部&lt;/li&gt;
+  &lt;li&gt;某个点前后的点的值都比该点小，那么该点处于这段曲线的最高处&lt;/li&gt;
+  &lt;li&gt;某个点前后的点相比该点有一大一小，那么该点处于平缓的过渡段&lt;/li&gt;
+  &lt;li&gt;每个点所在的曲线斜率为0&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;由上述最后一个条件，结合贝塞尔曲线原理（在本例中皆采用二次贝塞尔曲线，也就是只有一个控制点），在上面所给图中，p1和p2，或p2和p3之间若只有一个控制点，那么必定有一个点的斜率不为0，也就是造成曲线不平滑。那么，就只能分成两段进行绘制，如图中的p1和p2之间的曲线，我们取连线的中点m1为过渡点，分别绘制p1-m1，m1-p2的二次贝塞尔曲线；在两段曲线中再分别取控制点c1和c2，各个点满足以下关系：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;m1(x,y) = ((p1(x)+p2(x))/2, (p1(y)+p2(y))/2)
+c1(x,y) = ((p1(x)+m1(x))/2, p1(y))
+c2(x,y) = ((m1(x)+p2(x))/2, p2(y))
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;关于控制点的y值，分别取和p1以及p2相同，使得两点的线段斜率为0。p2-p3之间的曲线以此类推，也就是先取中点，再取控制点，最后绘制两段曲线，任意两点间需要绘制两段曲线。&lt;/p&gt;
+
+&lt;p&gt;p1-p2曲线绘制代码如下：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;UIBezierPath *path = [UIBezierPath path];
+[path moveToPoint:p1];
+[path addQuadCurveToPoint:m1 controlPoint:c1];
+[path addQuadCurveToPoint:p2 controlPoint:c2];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;绘制完毕 🍻🍻&lt;/p&gt;
+
+&lt;p&gt;至于线型图另一种类型，尖峰曲线，不是平滑曲线，任何两点间都是一段向下凹的曲线，具体做法读者自行拓展，或者看WYChart源码。&lt;/p&gt;
+
+&lt;h3 id=&quot;cagradientlayer&quot;&gt;CAGradientLayer绘制渐变层&lt;/h3&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developer.apple.com/reference/quartzcore/cagradientlayer&quot;&gt;官方文档&lt;/a&gt; 对CAGradientLayer的介绍是这样的：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;The CAGradientLayer class draws a color gradient over its background color, filling the shape of the layer (including rounded corners)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;顾名思义，CAGradientLayer就是绘制渐变图层。可以生成两种或更多的颜色渐变，其使用了硬件加速渲染。&lt;/p&gt;
+
+&lt;p&gt;使用方法是赋予一个colors数组和一个locations数组，前者表明渐变颜色，后者表明渐变颜色的位置&lt;/p&gt;
+
+&lt;p&gt;在iOS绘制渐变图层还可以使用CoreGraphic的CGGradient，其比CAGradientLayer多出了径向渐变的画法，CAGradientLayer只支持轴向渐变。
+另外，使用CoreImage框架也可以绘制渐变图层，这个有兴趣的自己探索下。&lt;/p&gt;
+
+&lt;p&gt;在WYChart中，我们要实现的线型图渐变效果是这样的：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/post_img/2016-10-13-WYChart-S/Line_Gradient.png&quot; alt=&quot;gradient&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;以让线型图更加美观。&lt;/p&gt;
+
+&lt;p&gt;绘制思路是这样的，在绘制好的渐变层上面加一个“面具”，以呈现曲线的轮廓。&lt;/p&gt;
+
+&lt;p&gt;这个“面具”就是layer的mask属性，也是layer类型，由于需要具体的形状，我们定义一个和曲线轮廓一样的CAShapeLayer就可以了。&lt;/p&gt;
+
+&lt;p&gt;“面具”mask就是在一个图层上加上一个有形状的图层，让原来的图层呈现出某个轮廓的边框。&lt;/p&gt;
+
+&lt;p&gt;代码实现如下：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;CAShapeLayer *maskLayer = [CAShapeLayer layer];
+...
+UIBezierPath  *gradientPath = [UIBezierPath bezierPathWithCGPath:linePath.CGPath];
+//构建与曲线相同的轮廓，做法和贝塞尔曲线绘制相同
+...
+maskLayer.path = gradientPath;
+CAGradientLayer *gradientLayer = [CAGradientLayer layer];
+gradientLayer.mask = maskLayer;
+gradientLayer.colors = cgColors;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;需要注意的是，gradientLayer.colors属性要求每个元素是CGColor类型的，故我们需要对UIColor做类型转换：&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;NSMutableArray *cgColors = [NSMutableArray arrayWithCapacity:gradientColors.count];
+    [gradientColors enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        CGColorRef cgColor;
+        if ([obj isKindOfClass:[UIColor class]]) {
+            cgColor = ((UIColor *)obj).CGColor;
+        } else {
+            cgColor = (__bridge CGColorRef)(obj);
+        }
+        [cgColors addObject:(__bridge id)cgColor];
+    }];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;这样子才能绘制出预想的效果。&lt;/p&gt;
+
+&lt;h3 id=&quot;section-1&quot;&gt;总结&lt;/h3&gt;
+
+&lt;p&gt;至此，我们的线型图绘制过程就完成了，我们大概通过下列几个重要过程绘制：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;CALayer及CAShapeLayer的使用&lt;/li&gt;
+  &lt;li&gt;UIBezierPath的使用&lt;/li&gt;
+  &lt;li&gt;绘制平滑的曲线及其涉及的计算&lt;/li&gt;
+  &lt;li&gt;CAGradientLayer绘制渐变层&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;将一个看似难的效果，分解成多个不同的技术点，逐个实现，便可破之。&lt;/p&gt;
+
+&lt;p&gt;如果你对上述介绍还不是很清晰，结合源码进行阅读吧，戳👉&lt;strong&gt;&lt;a href=&quot;https://github.com/GeorgeWang03/WYChart&quot;&gt;WYChart&lt;/a&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;下一篇我将继续介绍WYChart的线型图动画的实现。&lt;/p&gt;
+</description>
+        <pubDate>Sat, 15 Oct 2016 01:20:00 +0800</pubDate>
+        <link>http://blog.oneinbest.com/2016/10/15/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%B8%89-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E7%BB%98%E5%88%B6/</link>
+        <guid isPermaLink="true">http://blog.oneinbest.com/2016/10/15/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%B8%89-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E7%BB%98%E5%88%B6/</guid>
+        
+        <category>WYChart</category>
+        
+        <category>开源</category>
+        
+        <category>动画</category>
+        
+        
+      </item>
     
       <item>
         <title>WYChart介绍系列（二）线型图的框架概览及设计思路</title>
@@ -185,7 +863,7 @@
 &lt;h3 id=&quot;section&quot;&gt;线型图&lt;/h3&gt;
 &lt;ul&gt;
   &lt;li&gt;&lt;a href=&quot;http://blog.oneinbest.com/2016/10/12/WYChart介绍系列-二-线型图的框架概览及设计思路&quot;&gt;框架概览／设计思路&lt;/a&gt;&lt;/li&gt;
-  &lt;li&gt;绘制：线条的绘制思路&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;http://blog.oneinbest.com/2016/10/15/WYChart-介绍系列-三-线型图绘制&quot;&gt;绘制：线条的绘制思路&lt;/a&gt;&lt;/li&gt;
   &lt;li&gt;动画：实现方式（draw,spring…)&lt;/li&gt;
   &lt;li&gt;交互：触碰点实现&lt;/li&gt;
 &lt;/ul&gt;

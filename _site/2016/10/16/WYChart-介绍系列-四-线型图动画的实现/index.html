@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="iOS、创作与设计 | 王颖，iOS Engineer | 这里是王颖的个人博客，我们在这里分享技术，分享见闻，分享人生">
+    <meta name="keywords"  content="王颖, @georgewang, 王颖的博客, GeorgeWang Blog, 博客, 个人网站, 互联网, iOS, 读书, 旅行">
+    <link rel="shortcut icon" href="/img/seoIcon.jpg">
+
+    <title>WYChart介绍系列（四）线型图动画的实现 - 王颖的博客 | GeorgeWang Blog</title>
+
+    <link rel="canonical" href="http://blog.oneinbest.com/2016/10/16/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E5%9B%9B-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E5%8A%A8%E7%94%BB%E7%9A%84%E5%AE%9E%E7%8E%B0/">
+
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/hux-blog.min.css">
+
+    <!-- Pygments Github CSS -->
+    <link rel="stylesheet" href="/css/syntax.css">
+
+    <!-- Custom Fonts -->
+    <!-- <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css"> -->
+    <!-- Hux change font-awesome CDN to qiniu -->
+    <link href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+
+    <!-- Hux Delete, sad but pending in China
+    <link href='http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/
+    css'>
+    -->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- ga & ba script hoook -->
+    <script></script>
+</head>
+
+
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="">
+
+    <!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">GeorgeWang Blog</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/about/">About</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/tags/">Tags</a>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    var __HuxNav__ = {
+        close: function(){
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        },
+        open: function(){
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+
+    // Bind Event
+    $toggle.addEventListener('click', function(e){
+        if ($navbar.className.indexOf('in') > 0) {
+            __HuxNav__.close()
+        }else{
+            __HuxNav__.open()
+        }
+    })
+
+    /**
+     * Since Fastclick is used to delegate 'touchstart' globally
+     * to hack 300ms delay in iOS by performing a fake 'click',
+     * Using 'e.stopPropagation' to stop 'touchstart' event from 
+     * $toggle/$collapse will break global delegation.
+     * 
+     * Instead, we use a 'e.target' filter to prevent handler
+     * added to document close HuxNav.  
+     *
+     * Also, we use 'click' instead of 'touchstart' as compromise
+     */
+    document.addEventListener('click', function(e){
+        if(e.target == $toggle) return;
+        if(e.target.className == 'icon-bar') return;
+        __HuxNav__.close();
+    })
+</script>
+
+
+    <!-- Image to hack wechat -->
+<!-- <img src="/img/icon_wechat.png" width="0" height="0"> -->
+<!-- <img src="/img/post-bg-miui6.jpg" width="0" height="0"> -->
+
+<!-- Post Header -->
+<style type="text/css">
+    header.intro-header{
+        position: relative;
+        background-image: url('/img/post-bg-miui6.jpg')
+    }
+
+    
+</style>
+<header class="intro-header" >
+    <div class="header-mask"></div>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                        <a class="tag" href="/tags/#WYChart" title="WYChart">WYChart</a>
+                        
+                        <a class="tag" href="/tags/#开源" title="开源">开源</a>
+                        
+                        <a class="tag" href="/tags/#动画" title="动画">动画</a>
+                        
+                    </div>
+                    <h1>WYChart介绍系列（四）线型图动画的实现</h1>
+                    
+                    
+                    <h2 class="subheading"></h2>
+                    
+                    <span class="meta">Posted by GeorgeWang on October 16, 2016</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+
+    <!-- Post Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+				<p>在前面的文章中有提到WYChart中线型图使用的是CoreAnimation框架，动画的制作也是使用里面一系列的效果。</p>
+
+<p>本文将分为下面几个部分做讲解：</p>
+
+<ul>
+  <li>CoreAnimation的动画类CABasicAnimation及其子类</li>
+  <li>WYChart中线型图采用的动画类型</li>
+  <li>CADisplayLink+UIViewAnimation+CALayer的动画模式</li>
+</ul>
+
+<p>那么，开始吧 👇👇</p>
+
+<h3 id="coreanimationcabasicanimation">CoreAnimation的动画类CABasicAnimation及相关类</h3>
+
+<p><a href="">官方文档</a>对CABasicAnimation的介绍是这样的：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>CABasicAnimation provides basic, single-keyframe animation capabilities for a layer property. 
+</code></pre>
+</div>
+
+<p>也就是，CABasicAnimation为Layer的属性提供基础，简单的关键帧动画。至于哪些属性能做动画，在各个Layer的头文件中有声明，如果是<code class="highlighter-rouge">animatable</code>的，就是可以做动画的。</p>
+
+<p>CABasicAnimation有几个核心的属性：duration,fromValue,toValue以及keyPath，后者是通过工厂方法<code class="highlighter-rouge">animationWithKeyPath:</code>初始化，也是用于动画的属性。前三个属性，duration用于定义动画的时长，fromValue和toValue分别是属性开始的值和结束的值，它们都只接受对象类型的变量，也就是如果是数值类型，需要先转化为NSNumber对象类型。比如，现在对一个图层做由透明到不透明的动画，应该这样做：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>CABasicAnimation  *animation = [CABasicAnimation animationWithKeyPath:@"opacity"];
+animation.duration = 1.0;
+animation.fromValue = @(0.0);
+animation.toValue = @(1.0);
+[layer addAnimation:animation forKey:@"opacity"];
+</code></pre>
+</div>
+
+<p>在<code class="highlighter-rouge">CAAnimation.h</code>头文件中，可以看到<strong>CABasicAnimation</strong>是继承自<strong>CAPropertyAnimation</strong>，后者是继承自<strong>CAAnimation</strong>，关于<strong>CAPropertyAnimation</strong>和<strong>CAAnimation</strong>这里不展开介绍，有兴趣的自行Google。
+重点在于，从头文件中我们可以看到除了<strong>CABasicAnimation</strong>，还有<strong>CASpringAnimation</strong>、<strong>CAKeyframeAnimation</strong>以及<strong>CATransition</strong>。</p>
+
+<p><strong>CASpringAnimation</strong>继承自CABasicAnimation，用于实现弹簧动画；它有几个属性用于设置弹簧的效果，比如用于设置重量的<code class="highlighter-rouge">mass</code>，越大弹簧的压缩越严重；又如用于设置劲度系数的<code class="highlighter-rouge">stiffness</code>，系数越大，动画开始时产品的力气越大，速度越快；还有阻尼系数<code class="highlighter-rouge">damping</code>，越大弹簧动画停止越快；最后是初始速度<code class="highlighter-rouge">initialVelocity</code>，表示一开始的速度。值得注意的是，有一个<code class="highlighter-rouge">readonly</code>的属性<code class="highlighter-rouge">settlingDuration</code>，用于估算动画的时间。为什么需要这个估算时间，因为如果将前面提到的<code class="highlighter-rouge">duration</code>属性设置小于这个估算时间，那动画会在弹簧停止之前便结束，这样看起来很奇怪，因此需要这个估算时间。不过，实践证明，这个估算时间也不怎么靠谱，所以，实际操作时还是要自己调试着。</p>
+
+<p>CAKeyframeAnimation继承自CAPropertyAnimation，用于关键帧动画；他有一个必选属性<code class="highlighter-rouge">values</code>，表示<code class="highlighter-rouge">keypath</code>的变化过程；此外，有一些可选的属性。<code class="highlighter-rouge">path</code>可选属性，一般用于轨迹动画，如旋转、抛物线等运动，当它不为空时，<code class="highlighter-rouge">values</code>属性被覆盖；<code class="highlighter-rouge">keyTimes</code>属性声明在<code class="highlighter-rouge">values</code>中的值在哪个时间起作用；还有诸如<code class="highlighter-rouge">timingFunctions</code>、<code class="highlighter-rouge">calculationMode</code>和<code class="highlighter-rouge">rotationMode</code>等属性，限于篇幅，这里不展开细讲。在后面的博文中，会开一篇细讲这几个动画。</p>
+
+<p>CATransition继承自CAAnimation，用于自定义页面跳转。在WYChart中我们不会用到，故也不展开讲，只是说明在CAAnimation族中有这个类。</p>
+
+<p>以上是CoreAnimation的动画类CABasicAnimation及相关类的介绍，应该说CABasicAnimation是基础，也是用得最多的，CASpringAnimation和CAKeyframeAnimation可以做出一些比较特别的动画。</p>
+
+<h3 id="wychart">WYChart中线型图采用的动画类型</h3>
+
+<p>在WYChart的线型图中，目前一共有五种动画，分别如下：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>kWYLineChartAnimationDrawing // 绘制动画
+kWYLineChartAnimationAlpha   // 透明度动画
+kWYLineChartAnimationWidth   // 宽度渐变动画
+kWYLineChartAnimationRise    // 上升动画
+kWYLineChartAnimationSpring  // 弹簧动画
+</code></pre>
+</div>
+
+<p>前四个动画都相对比较简单，只要使用<strong>CABasicAnimation</strong>就可以实现。例如绘制动画，实现如下：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>CABasicAnimation  *animation = [CABasicAnimation animationWithKeyPath:@"strokeEnd"];
+animation.duration = _animationDuration;
+animation.fromValue = @(0.0);
+animation.toValue = @(1.0);
+[lineLayer addAnimation:animation forKey:@"strokeEnd"];
+</code></pre>
+</div>
+
+<p>使用<code class="highlighter-rouge">strokeEnd</code>属性做绘制动画，效果如下：
+<img src="/img/post_img/2016-10-13-WYChart-S/LineAnimation_Drawing.gif" alt="Animation_Drawing" /></p>
+
+<p>不过这四个动画里面，<code class="highlighter-rouge">kWYLineChartAnimationRise</code>还要对<strong>path</strong>做一下处理。我们要实现线条由下往上升，于是需要两个预先定义好的<strong>path</strong>，一个是最终状态，也就是最初构建的那个，另一个是初始状态，其每个点的Y值都比初始的值小7个单位的距离在代码中我们这样实现：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>[linePath addQuadCurveToPoint:pathSegment.endPoint.point controlPoint:pathSegment.controlPoint.point];
+[linePathLower addQuadCurveToPoint:[self pointBelowPoint:pathSegment.endPoint.point forDistance:DEFAULT_RISE_HEIGHT] controlPoint:[self pointBelowPoint:pathSegment.controlPoint.point forDistance:DEFAULT_RISE_HEIGHT]];
+</code></pre>
+</div>
+
+<p><code class="highlighter-rouge">linePath</code>是最终状态，<code class="highlighter-rouge">linePathLower</code>为初始状态，<code class="highlighter-rouge">DEFAULT_RISE_HEIGHT </code>为上升高度。</p>
+
+<p>以上都是<strong>CABasicAnimation</strong>的简单应用，真正重要的是接下来要讲的 👇👇</p>
+
+<h3 id="cadisplaylinkuiviewanimationcalayer">CADisplayLink+UIViewAnimation+CALayer的动画模式</h3>
+
+<p>在上文中还少了<code class="highlighter-rouge">kWYLineChartAnimationSpring</code>动画没讲，因为涉及到的内容比较复杂，在这里细讲。</p>
+
+<p>我们要实现的效果是：</p>
+
+<p><img src="/img/post_img/2016-10-13-WYChart-S/LineAnimation_Spring.gif" alt="Animation_Drawing" /></p>
+
+<p>你可能会想到使用<code class="highlighter-rouge">CASpringAnimation</code>结合<code class="highlighter-rouge">path</code>属性来实现，没错，最初我也是采用这种做法，但不幸的是，其实际效果和我们的想去甚远，甚至扭曲严重。因此这种做法行不通，那是否还有其他途径？ 必需的！😜</p>
+
+<p>那就是CADisplayLink+UIViewAnimation+CALayer的动画模式，下面我们先对这几个概念做个介绍。</p>
+
+<h4 id="cadisplaylink">CADisplayLink</h4>
+
+<p><a href="https://developer.apple.com/reference/quartzcore/cadisplaylink">官方文档</a>对<strong>CADisplayLink</strong>的介绍如下：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>A CADisplayLink object is a timer object that allows your application to synchronize its drawing to the refresh rate of the display.
+</code></pre>
+</div>
+
+<p>也就是<strong>CADisplayLink可以让你的绘制和屏幕刷新频率同步</strong>。</p>
+
+<p>用法如下：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>CADisplayLink  *displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(handleScreenUpdate)];
+[_displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
+</code></pre>
+</div>
+
+<p>这样子，假如屏幕的刷新频率是60pf/s，那么每秒<code class="highlighter-rouge">handleScreenUpdate</code>会被调用60次，我们可以在里面做视图的更新操作。不过要注意的是，更新操作耗费时间不能超过1/60s，否则会掉帧。如果不想调用太频繁，可以设置<code class="highlighter-rouge">frameInterval</code>的值，比如每秒只调用30次，那么<code class="highlighter-rouge">frameInterval = 30</code>。</p>
+
+<p>有些读者可能会想到另一个相似的工具<code class="highlighter-rouge">NSTimer</code>，不过它们还是有很大区别的，区别如下：</p>
+
+<ul>
+  <li>CADisplayLink是和屏幕刷新频率一致的，而NSTimer则不然，只是提供一个循环调用的功能，遇到NSRunLoop阻塞时还会延迟</li>
+  <li>NSTimer主要体现在控制循环次数上，而CADisplayLink则主要强调与屏幕刷新相关</li>
+</ul>
+
+<p>因此，对与实时性要求高的地方，使用CADisplayLink比较适合，比如我们要实现的动画。</p>
+
+<h4 id="uiviewanimation">UIViewAnimation</h4>
+
+<p>相信大家平时也使用过UIView的animation方法做过一些简单的动画，比如：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>[UIView animateWithDuration:_animationDuration + 0.5
+                          delay:0.0
+         usingSpringWithDamping:0.15
+          initialSpringVelocity:1.40
+                        options:0
+                     animations:^{
+                         ...
+                     } completion:^(BOOL finished) {
+                         ...
+                     }];
+</code></pre>
+</div>
+
+<p>做弹簧动画，参数和我们上文讲到的<strong>CASpringAnimation</strong>有点相似。</p>
+
+<h4 id="calayer">CALayer</h4>
+
+<p>至于CALayer，由于上一篇文章介绍过，不赘述。但我们这里要介绍的，确切说应该是包含在UIView<strong>图层树</strong>中的Layer。关于图层树，在我的<a href="">另一篇文章</a>有介绍过。这里再简单介绍一下，大概就是UIView运行时在系统内部的Layer图层树分为三种，分别为模型层、展示层和渲染层，模型层就是持有view显示属性的view.layer；而展示层则是在动画执行时实时反映当前图层状态，为view.layer.presentationLayer；渲染层是私有的，用于将模型层异步渲染成为表示层。而WYChart中用得最多的莫过于展示层了，比如我们想获得动画执行时的view的位置，如果简单的通过view.frame.origin或者view.layer.position，那么获取到的结果并不是我们想要的，只能通过展示层view.layer.presentation.position才能获得临时位置，这一点在下文比较重要⚠️⚠️。上文提到的模式，确切的说应该是<strong>CADisplayLink+UIViewAnimation+presentationLayer的动画模式</strong>。</p>
+
+<hr />
+
+<p>上面介绍了这么多，其实都是为我们接下来要介绍的模式，<strong>CADisplayLink+UIViewAnimation+CALayer的动画模式</strong>，所服务的。</p>
+
+<p>上文提到，我们要实现的线型图弹簧效果如下，但是用CASpringAnimation效果却相去甚远。</p>
+
+<p><img src="/img/post_img/2016-10-13-WYChart-S/LineAnimation_Spring.gif" alt="Animation_Drawing" /></p>
+
+<p>确保你对上面概念了解清楚。
+这时候我们就可以结合上面提到的这种模式来实现。</p>
+
+<p>手动实现一个线型图的弹簧动画，需要以下几个步骤：</p>
+
+<ul>
+  <li>获取一系列和屏幕刷新频率相近的<strong>弹簧参数</strong></li>
+  <li>根据弹簧参数构建一系列的贝塞尔曲线</li>
+  <li>在CADisplayLink每一帧刷新时刷新线型图曲线</li>
+</ul>
+
+<p>要获取一系列和屏幕刷新频率相近的<strong>弹簧参数</strong>，有两种方式，一种是自己模拟，也就是通过某个函数，类似的比如电波，但是经过一番搜索和对比，这个途径并不直观，有兴趣的童鞋可以自己探索一番；另一种方式，就是就近取材，UIViewAnimation+presentationLayer.position。</p>
+
+<p>做法是，1.定义N个透明的view，让它们做springAnimation</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>[UIView animateWithDuration:_animationDuration + 0.5
+                          delay:0.0
+         usingSpringWithDamping:0.15
+          initialSpringVelocity:1.40
+                        options:0//UIViewAnimationOptionCurveEaseOut
+                     animations:^{
+                         [_animationControlPoints enumerateObjectsUsingBlock:^(UIView *view, NSUInteger idx, BOOL * _Nonnull stop) {
+                         	// 遍历所有模拟点视图，做动画
+                             view.center = CGPointMake(view.center.x, ((WYLineChartPoint *)_parentView.points[idx]).y);
+                         }];
+                     } completion:^(BOOL finished) {
+                         if (finished) {
+                             _displayLink.paused = true;
+                             self.userInteractionEnabled = true;
+                         }
+                     }];
+</code></pre>
+</div>
+
+<p>2.开启CADisplayLink，在执行函数中通过view.layer.presentationLayer.position.x取得view与原点的偏离值
+3.然后对所有给出的数据点的y值与偏离值做运算，得出新的y值</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>[_parentView.points enumerateObjectsUsingBlock:^(WYLineChartPoint *point, NSUInteger idx, BOOL * _Nonnull stop) {
+    UIView *view = _animationControlPoints[idx];
+    point.x = [view wy_centerForPresentationLayer:true].x;// 通过presentationLayer.position获得实时位置
+    point.y = [view wy_centerForPresentationLayer:true].y;// 通过presentationLayer.position获得实时位置
+}];
+</code></pre>
+</div>
+
+<p>4.重新构建贝塞尔曲线应用到线型图上，并完成一帧的刷新</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>UIBezierPath *linePath = [self currentLinePathForWave];
+_lineShapeLayer.path = linePath.CGPath;
+</code></pre>
+</div>
+
+<p>这便是我们的弹簧动画手动实现过程  🍻🍻</p>
+
+<h2 id="section">总结</h2>
+
+<p>本文我们从CABasicAnimation及其相关类介绍开始，大致讲述了CoreAniamtion的动画类型及简单用法，接着介绍了WYChart中线型图的动画类型及部分简单实现方式，最后介绍了最重要的<strong>CADisplayLink+UIViewAnimation+CALayer的动画模式</strong>。本文介绍到的内容，应该是每个iOS开发者都要了解的，因为很多UI层的内容都和它们息息相关。例如CADisplayLink+presentationLayer的模式，还可以结合UIDynamic做出很多接近现实的逼真的动画。总而言之，个人认为本文的内容还是比较有价值的，对于我自己，作为一个笔记，可以时常温习，对于新手开发者，又是一个提高的教程，希望它可以帮到你，谢谢你的阅读。</p>
+
+<h4 id="section-1">相关文章</h4>
+
+<ul>
+  <li><a href="https://objccn.io/issue-12-0/">Objc关于动画的介绍</a></li>
+  <li><a href="https://developer.apple.com/reference/quartzcore">官方对QuartzCore的介绍</a></li>
+  <li><a href="https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/CoreAnimation_guide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40004514">官方的Animation指导</a></li>
+  <li><a href="https://zsisme.gitbooks.io/ios-/content/index.html">GitBook上一本关于动画的书</a></li>
+</ul>
+
+
+                <ul class="pager">
+                    
+                    <li class="previous">
+                        <a href="/2016/10/15/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%B8%89-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E7%BB%98%E5%88%B6/" data-toggle="tooltip" data-placement="top" title="WYChart介绍系列（三）线型图绘制">
+                        Previous<br>
+                        <span>WYChart介绍系列（三）线型图绘制</span>
+                        </a>
+                    </li>
+                    
+                    
+                    <li class="next">
+                        <a href="/2016/11/07/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E4%BA%94-%E4%BA%A4%E4%BA%92-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E8%A7%A6%E7%A2%B0%E7%82%B9%E4%BB%A5%E5%8F%8A%E7%BC%A9%E6%94%BE%E7%9A%84%E5%AE%9E%E7%8E%B0/" data-toggle="tooltip" data-placement="top" title="WYChart介绍系列（五）交互：线型图触碰点以及缩放的实现">
+                        Next<br>
+                        <span>WYChart介绍系列（五）交互：线型图触碰点以及缩放的实现</span>
+                        </a>
+                    </li>
+                    
+                </ul>
+<hr>
+<!-- JiaThis Button BEGIN -->
+<div class="jiathis_style"><span class="jiathis_txt">分享到：</span>
+<a class="jiathis_button_weixin"></a>
+<a class="jiathis_button_tsina"></a>
+<a class="jiathis_button_ydnote"></a>
+<a class="jiathis_button_fb"></a>
+<a href="http://www.jiathis.com/share?uid=2116351" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+</div>
+<script type="text/javascript" >
+var jiathis_config={
+    data_track_clickback:true,
+    siteNum:4,
+    sm:"tsina,weixin,ydnote,fb",
+    summary:"",
+    boldNum:4,
+    shortUrl:false,
+    hideMore:false
+}
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code_mini/jia.js?uid=2116351" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+
+
+
+
+
+
+<div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+<script>
+  var cloudTieConfig = {
+    url: "http://blog.oneinbest.com/2016/10/16/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E5%9B%9B-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E5%8A%A8%E7%94%BB%E7%9A%84%E5%AE%9E%E7%8E%B0/", 
+    sourceId: "http://blog.oneinbest.com/2016/10/16/WYChart-%E4%BB%8B%E7%BB%8D%E7%B3%BB%E5%88%97-%E5%9B%9B-%E7%BA%BF%E5%9E%8B%E5%9B%BE%E5%8A%A8%E7%94%BB%E7%9A%84%E5%AE%9E%E7%8E%B0/",
+    productKey: "1ed9a4bea780408289b61120e47c3586",
+    target: "cloud-tie-wrapper"
+  };
+</script>
+
+</div>
+
+<script src="https://img1.ws.126.net/f2e/tie/yun/sdk/loader.js"></script>
+
+
+                
+
+            </div>  
+
+    <!-- Side Catalog Container -->
+        
+
+    <!-- Sidebar Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                <!-- Featured Tags -->
+                
+
+                <!-- Friends Blog -->
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+<script type="text/javascript">
+    // dynamic User by Hux
+    var _user = 'huxblog';
+
+    // duoshuo comment query.
+    var duoshuoQuery = {short_name: _user };
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0]
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!-- 多说公共JS代码 end -->
+
+
+
+
+
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+<!-- anchor-js, Doc:http://bryanbraun.github.io/anchorjs/ -->
+<script>
+    async("//cdnjs.cloudflare.com/ajax/libs/anchor-js/1.1.1/anchor.min.js",function(){
+        anchors.options = {
+          visible: 'always',
+          placement: 'right',
+          icon: '#'
+        };
+        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
+    })
+</script>
+<style>
+    /* place left on bigger screen */
+    @media all and (min-width: 800px) {
+        .anchorjs-link{
+            position: absolute;
+            left: -0.75em;
+            font-size: 1.1em;
+            margin-top : -0.1em;
+        }
+    }
+</style>
+
+
+    <!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                    
+                    
+
+                    <!-- add Weibo, Zhihu by Hux, add target = "_blank" to <a> by Hux -->
+                    
+                    
+                    <li>
+                        <a target="_blank" href="http://weibo.com/_王颖_">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-weibo fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+
+
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://github.com/GeorgeWang03">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                    
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright &copy; GeorgeWang Blog 2016
+                    <!-- <br>
+                    Theme by <a href="http://huangxuan.me">Hux</a> | -->
+                    <iframe
+                        style="margin-left: 2px; margin-bottom:-5px;"
+                        frameborder="0" scrolling="0" width="91px" height="20px"
+                        src="https://ghbtns.com/github-btn.html?user=GeorgeWang03&repo=georgewang03.github.io&type=star&count=true" >
+                    </iframe>
+                </p>
+                <p align="center"><font size="2" color="#808080">
+                <span id="busuanzi_container_site_pv">您是本站第<span id="busuanzi_value_site_pv"></span>位访客</span></font>
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- jQuery -->
+<script src="/js/jquery.min.js "></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="/js/bootstrap.min.js "></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="/js/hux-blog.min.js "></script>
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+<!-- 
+     Because of the native support for backtick-style fenced code blocks 
+     right within the Markdown is landed in Github Pages, 
+     From V1.6, There is no need for Highlight.js, 
+     so Huxblog drops it officially.
+
+     - https://github.com/blog/2100-github-pages-now-faster-and-simpler-with-jekyll-3-0  
+     - https://help.github.com/articles/creating-and-highlighting-code-blocks/ 
+     - https://github.com/jneen/rouge/wiki/list-of-supported-languages-and-lexers   
+-->
+<!--
+    <script>
+        async("http://cdn.bootcss.com/highlight.js/8.6/highlight.min.js", function(){
+            hljs.initHighlightingOnLoad();
+        })
+    </script>
+    <link href="http://cdn.bootcss.com/highlight.js/8.6/styles/github.min.css" rel="stylesheet">
+-->
+<!-- 不蒜子 -->
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async('/js/jquery.tagcloud.js',function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+<!--fastClick.js -->
+<script>
+    async("//cdnjs.cloudflare.com/ajax/libs/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+<!-- Google Analytics -->
+
+
+
+<!-- Baidu Tongji -->
+
+
+
+
+<!-- Side Catalog -->
+
+
+
+
+
+<!-- Image to hack wechat -->
+<img src="/img/icon_wechat.png" width="0" height="0" />
+<!-- Migrate from head to bottom, no longer block render and still work -->
+
+</body>
+
+</html>

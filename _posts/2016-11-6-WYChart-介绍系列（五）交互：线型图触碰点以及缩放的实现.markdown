@@ -1,0 +1,150 @@
+---
+layout:     post
+title:      "WYChart介绍系列（五）交互：线型图触碰点以及缩放的实现"
+date:       2016-11-6 22:00:00
+author:     "GeorgeWang"
+header-img: "img/post-bg-miui6.jpg"
+tags:
+    - WYChart
+    - 开源
+    - 绘制
+    - 交互
+---
+
+
+前面三张分别介绍了**[WYChart](https://github.com/GeorgeWang03/WYChart)**中线型图的总体规划、绘制、动画的实现，相信看完的读者对于如何实现一个带效果的线型图有一个整体的概念了，那么，再加上接下来要介绍的这一点，那么线型图的实现就完整了，那就是交互的实现。
+
+线型图中主要的交互有两种，第一是曲线上点的触碰获取，第二是缩放。（其实还有一点，就是可滑动，由于相对简单，不展开）
+
+本文将从以下两点介绍：
+
+* 可滑动触碰点实现
+* 缩放实现
+
+第一点比较复杂，第二点相对简单，话不多说，现在开始吧。
+
+## 可滑动触碰点的实现
+
+这一点是基于读者对贝塞尔曲线有一定了解的基础上做介绍的，如果还不了解，参考前面系列文章第三篇。 👉 [前往]()
+
+由前面文章的介绍，我们可知**[WYChart](https://github.com/GeorgeWang03/WYChart)**中线型图有三种线型，直线、波浪曲线和尖峰曲线。在触碰点实现中，我们把他们分成两个类别，第一个是直线，第二个是曲线，即波浪曲线和尖峰曲线。
+
+#### 首先是直线
+
+获取直线上的点，由于触碰点的x代表直线上的x，但是y并不代表真实的y，所以这里第一步就是获取y（出发点），回想我们初高中学到的根据x求y值，那就是一次函数方程式了，可以根据斜率很快地得出某段直线x对应的y值。在**[WYChart](https://github.com/GeorgeWang03/WYChart)**的实现中，我们把曲线分成了n段进行绘制，看过源码的读者应该知道代码中是用`WYLineChartPathSegment`表示曲线段的，其中主要属性如下：
+
+		@property (nonatomic) WYLineChartPoint *startPoint; //起始点
+		@property (nonatomic) WYLineChartPoint   *endPoint; //结束点
+		@property (nonatomic) WYLineChartPoint *controlPoint; //控制点
+
+		@property (nonatomic) CGFloat coefficientA; //系数a
+		@property (nonatomic) CGFloat coefficientB; //系数b
+		@property (nonatomic) CGFloat coefficientC; //系数c
+		
+咋一看是表示贝塞尔曲线和一元二次方程式的，但是，只要系数a=0，那么二次方程式不就是一次方程式吗，因此，线段的方程式计算代码如下：
+
+		 segment.coefficientA = 0;
+		 segment.coefficientB = (endPoint.y - startPoint.y) / (endPoint.x - startPoint.x); //斜率计算
+		 segment.coefficientC = startPoint.y - segment.coefficientB * startPoint.x; //常数计算
+		 
+触碰点对应的y值计算方法如下：
+
+		- (CGFloat)yValueCalculteFromQuadraticFormulaForPoint:(CGPoint)point {
+    
+    		CGFloat x = point.x;
+    		return _coefficientA * powf(x, 2) + _coefficientB * x + _coefficientC;
+		}
+		
+由于`_coefficientA = 0`，故这里相当于 ` _coefficientB * x + _coefficientC` 即 `y=bx+c`一次方程形式。
+
+以上便是直线的y值获取方式。
+
+
+#### 其次是曲线
+
+曲线上的x对应y值的获取，和直线一样，通过方程式获取，这时候你可能会想，那就通过二次方程式 `y=ax^2+bx+c` 代入照搬吧！
+
+那么问题来了，二次方程式的系数如何获取？贝塞尔曲线是否就是二次方程式绘制出来的？
+
+对于后一个问题，答案是否定的。而要解第一个问题，就先要解决第二个问题。
+
+所有贝塞尔曲线（二次，这里不讨论三次贝塞尔）是抛物线，但是抛物线不一定可以用二次方程式表示。故，要获取二次方程式的系数，就要确定我们所绘制的二次贝塞尔曲线可以用二次方程式表示，相关推理参照[歪果仁的回答](http://math.stackexchange.com/questions/1257576/convert-quadratic-bezier-curve-to-parabola)
+
+也就是，二次曲线的三个控制点要满足以下关系：
+
+![bezier_cur_infer_1](/img/post_img/2016-10-13-WYChart-S/bezier_cur_infer_1.png)
+
+即控制点在**x轴上**必需是**起始点**和**终止点**的中点，`x2 = (x1 + x3)/2`（为什么是这样，唯一知道的就是控制点x一定要是起始点和终止点之间，这样才不会导致一个x对应两个y值，但为什么是`x2 = (x1 + x2)/2`，这个还需要推论，有读者知道，望指教），幸运的是，**[WYChart](https://github.com/GeorgeWang03/WYChart)**中的曲线符合这个关系，看过前面文章的读者应该记得，绘制平滑曲线时，我们便是取中点绘制曲线的。
+
+由以下贝塞尔曲线绘制图：
+
+![two_times_bezier](/img/post_img/2016-10-13-WYChart-S/two_times_bezier.gif)
+
+再结合上述歪果仁的回答，我们知道，起始点的斜率为起点和控制点连线的斜率，终点斜率为终点与控制点连线的斜率（这个结论其实还不严谨，需要一个证明过程，如果有读者知道，望指教)，于是有以下斜率关系：
+
+![bezier_cur_infer_1](/img/post_img/2016-10-13-WYChart-S/bezier_cur_infer_2.png)
+
+再由以上公式做推导，可以得到以下关系，进而求出系数a、b：
+
+![bezier_cur_infer_1](/img/post_img/2016-10-13-WYChart-S/bezier_cur_infer_3.png)
+
+有了系数a、b，那么参数c就可以很容易求出了。于是，触碰点的曲线y值就可以求出，带入二次方程，代码实现与上文直线求值一致。
+因此，根据触碰点的变化，我们就可以求出曲线上对应的点了。
+
+上述直线与曲线y值求出，但还有一点没提到，就是：
+#### 具体线段的寻找
+
+我们的线由很多个线段组成，在求出具体的值之前，还需要寻找具体的线段。
+在代码中，我们定义了一个数组用于存放所有`WYLineChartPathSegment`线段，在获取触碰点时，遍历线段集合（后续优化可以采用二分查找提高效率），找到其中满足`x<endPoint.x && x>startPoint.x`的线段，然后带入线段所属方程式，即可得到指定的点；如果线段不存在，意味着超出了线的范围。
+
+#### 最后
+
+我们需要定义一个长按手势，用于启动并移动，然后把对应视图中的点转换成线段上的点，最后更新触碰点的位置，需要时做动画。
+
+以上便是触碰点的实现，最初需要理解掌握贝塞尔曲线的概念及部分原理，然后是点转换的分析，接着是直线与曲线的方程式，再者是二次贝塞尔曲线与二次方程式的关系，最后是点的转换及绘制，分而治之，逐个击破，看似有点难度的触碰点实现也就很简单了。
+
+
+## 缩放的实现
+
+在**[WYChart](https://github.com/GeorgeWang03/WYChart)**线型图中，我们实现了一个捏合手势（`UIPinchGestureRecognizer`）做图形缩放的交互功能。原理其实挺简单，就是利用捏合手势获取到的缩放系数scale，对线图做水平缩放，缩放时采用CGAffineTransform来实现，并做透明度随缩放系数scale的变化，实现过渡效果，让交互更加自然。实现代码大概如下：
+
+		- (void)handlePinchGesture:(UIPinchGestureRecognizer *)recognize {
+	    	if (!_pinchable) return;
+    		[self transformComponentsWithPinchScale:recognize.scale];
+    		...
+    		// 根据手势状态的变化通知代理
+    		...
+    	}
+    	
+    	- (void)transformComponentsWithPinchScale:(CGFloat)scale {
+    
+    		CGAffineTransform transform = CGAffineTransformIdentity;
+    		transform = CGAffineTransformScale(transform, scale, 1.0);
+    
+    		CGFloat alpha = scale * 0.3; // 转换为透明度变化系数
+    
+    		_lineGraph.transform = transform; // 线图前景缩放
+    		_lineGraph.alpha = alpha; 		    // 线图前景透明度变化
+    
+    		_verticalReferenceLineGraph.transform = transform; // 垂直方向参考线视图缩放
+    		_verticalReferenceLineGraph.alpha = alpha; // 垂直方向参考线视图透明度变化
+	
+    		_xAxisView.transform = transform; // x轴前景缩放
+    		_xAxisView.alpha = alpha;
+    
+    		_yAxisView.alpha = alpha;
+    		_horizontalReferenceLineGraph.alpha = alpha;
+		}
+		
+		
+关于 `CGAffineTransform ` 相信大多数人都有一定的使用经验，简单地说就是一个平面图形变化运算，经常在交互及动画中用到，相关的有CATransform3D可做3D变化运算，在这里不多赘述，详情可参照官方文档及**[WYChart](https://github.com/GeorgeWang03/WYChart)**源码。
+
+
+## 总结
+
+至此，关于**[WYChart](https://github.com/GeorgeWang03/WYChart)**中线型图的交互介绍完毕。 🍻🍻
+一个好的图形，不仅仅是造型漂亮精美，还需要动画及交互功能的搭配，才更有生机活力，更能让用户青睐。
+**[WYChart](https://github.com/GeorgeWang03/WYChart)**的线型图，是集多种动画、交互功能与一体，并且有着不差的UI外观及自由定制的功能。
+至今，通过4篇文章的介绍，**[WYChart](https://github.com/GeorgeWang03/WYChart)**线型图的介绍也全部完成，其中包括设计、实现、及一些cocoa touch类的介绍，既是我自己的一个开发笔记，也是与开发者们交流学习的文章，希望各位能提出宝贵的意见，多多指教。如果觉得我的**[github开源项目](https://github.com/GeorgeWang03)**还不错的话，希望能得到你的星星✨点赞，谢谢。
+
+开发**[WYChart](https://github.com/GeorgeWang03/WYChart)**并写了这好几篇文章，用了不少时间，计划中接下来是**继续WYChart的后续开发**以及**关于WYChart扇形图的实现的介绍文章的撰写**，不过由于工作的原因，有时候没办法挤出太多时间去做，当然我会尽我所能去完成，有什么不周到的地方请见谅。希望大家都为开源做贡献！

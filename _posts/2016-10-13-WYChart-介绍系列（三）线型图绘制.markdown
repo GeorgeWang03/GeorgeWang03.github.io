@@ -1,0 +1,238 @@
+---
+layout:     post
+title:      "WYChart介绍系列（三）线型图绘制"
+date:       2016-10-14 17:20:00
+author:     "GeorgeWang"
+header-img: "img/post-bg-miui6.jpg"
+tags:
+    - WYChart
+    - 开源
+    - 动画
+---
+
+绘制是整个线型图实现的基础，如何绘制一个线型图？
+
+在**[WYChart](https://github.com/GeorgeWang03/WYChart)**中，我采用的是CAShapeLayer+UIBezierPath的组合，在这之前考虑过采用CoreGraphic做绘制，但是由于CALayer有CABasicAnimation一系列的动画支持，而且CoreAnimation框架都是Objective-C封装，相比CoreGraphic的C语言风格，更方便使用，所以最终还是采用CAShapeLayer+UIBezierPath的组合。此外，渐变前景的绘制用到CALayer的子类CAGradientLayer。
+
+线图中绘制的内容很多，但是总体并不复杂，**主要**还是在以下几点：
+
+* CALayer及CAShapeLayer的使用
+* UIBezierPath的使用
+* 绘制平滑的曲线及其涉及的计算
+* CAGradientLayer绘制渐变层
+
+所以，本文也从上面四点介绍WYChart线型图的实现。
+
+### CALayer及CAShapeLayer的使用
+
+[官方文档](https://developer.apple.com/reference/quartzcore/calayer)对CALayer的介绍时这样的：
+
+	The CALayer class manages image-based content and allows you to perform animations on that content. Layers are often used to provide the backing store for views but can also be used without a view to display content. 
+	
+简单地说就是CALayer类族管理与图像有关的内容并可以让你在上面做动画；Layer是View的基础，而且可以在View之外自己展示内容。
+
+[objc.io](https://objccn.io/issue-12-4/)对CALayer是这样介绍的：
+
+	在 iOS 中，所有的 view 都是由一个底层的 layer 来驱动的。view 和它的 layer 之间有着紧密的联系，view 其实直接从 layer 对象中获取了绝大多数它所需要的数据。在 iOS 中也有一些单独的 layer，比如 AVCaptureVideoPreviewLayer 和 CAShapeLayer，它们不需要附加到 view 上就可以在屏幕上显示内容。两种情况下其实都是 layer 在起决定作用。
+	
+可知layer是很重要的，如果对CALayer还不是很了解的话，可以从以上链接内容了解一下。
+
+CAShapeLayer是CALayer的一个子类，主要是渲染绘制在上面的贝塞尔线集合的形状。
+
+[官方文档](https://developer.apple.com/reference/quartzcore/cashapelayer)对CAShapeLayer的介绍是这样的：
+
+	The CAShapeLayer class draws a cubic Bezier spline in its coordinate space. The shape is composited between the layer's contents and its first sublayer.
+	
+结合上面所述，我们知道可以在CAShapeLayer上绘制线型图。
+
+**如何使用CAShapeLayer ？**
+
+CAShapeLayer使用简单，只要初始化并添加到view.layer上就可以绘制。
+
+		CAShapeLayer *layer = [CAShapeLayer layer];
+		...
+		layer.path = path;
+		//strokeColor, fillColor..的属性设置
+		...
+		[view.layer addSublayer:layer];
+		
+CAShapeLayer的主要属性有：
+
+* path : UIBezierPath // 决定Layer绘制形状的属性
+* strokeColor : UIColor // 决定线条的颜色
+* fillColor : UIColor // 决定被线条包围的封闭区域的填充颜色
+* lineWidth : CGFloat // 线条的宽度
+
+此外还有其它的，如用于绘制虚线的属性，都可以对绘制形状进行定制。
+
+### UIBezierPath的使用
+
+**首先**，是对贝塞尔曲线的理解，他是一个怎样的东西？
+
+* [维基百科的介绍](https://zh.wikipedia.org/wiki/%E8%B2%9D%E8%8C%B2%E6%9B%B2%E7%B7%9A)(需要翻墙)
+
+关于曲线的历史就不做介绍了，贝塞尔曲线最初用于汽车流体结构的设计。其原理就是通过所给出的点，以及**相关方程**，根据**时刻t**在某个[0,x]区间内计算出的所有**点连成的直线／曲线**，称为贝塞尔曲线。
+
+贝塞尔曲线可分为一次曲线、二次曲线和高阶曲线，二相关方程表示如下：
+
+* 一次曲线
+	
+![one_time_bezier](/img/post_img/2016-10-13-WYChart-S/one_time_bezier.png)
+
+* 二次曲线
+
+![one_time_bezier](/img/post_img/2016-10-13-WYChart-S/two_times_bezier.png)
+
+* 高阶曲线
+
+![one_time_bezier](/img/post_img/2016-10-13-WYChart-S/high_bezier.png)
+
+不同曲线的绘制过程如下，注意方程计算出的**点**的移动路径，即为曲线：
+
+* 一次曲线，其实就是直线
+
+![one_time_bezier](/img/post_img/2016-10-13-WYChart-S/one_time_bezier.gif)
+
+* 二次曲线
+
+![one_time_bezier](/img/post_img/2016-10-13-WYChart-S/two_times_bezier.gif)
+
+例如二次贝塞尔曲线，其实方程中的P1就是UIBezierPath中用到的**控制点**（controlPoint)；以此类推，可知一次曲线没有控制点。
+
+**其次**，是UIKit中的UIBezierPath的使用方法
+
+[官方文档](https://developer.apple.com/reference/uikit/uibezierpath)对UIBezierPath的介绍是这样的：
+
+	The UIBezierPath class lets you define a path consisting of straight and curved line segments and render that path in your custom views. 
+
+就是，UIBezierPath可以让你在自定义view上面绘制直线和曲线段。
+
+其实有了上面对于贝塞尔曲线的介绍，使用**UIBezierPath**进行绘制应该比较简单了。
+
+UIBezierPath提供的方法有两种，一种是构造好的类方法，另一种是手动构造的，也是我们主要介绍的。
+
+构造好的类方法用于创建矩形、椭圆形、圆形、弧线等，方法如下所示：
+
+	+ (instancetype)bezierPathWithRect:(CGRect)rect; //矩形
+	+ (instancetype)bezierPathWithOvalInRect:(CGRect)rect; //椭圆
+	+ (instancetype)bezierPathWithRoundedRect:(CGRect)rect cornerRadius:(CGFloat)cornerRadius; // 圆角矩形
+	+ (instancetype)bezierPathWithArcCenter:(CGPoint)center radius:(CGFloat)radius startAngle:(CGFloat)startAngle endAngle:(CGFloat)endAngle clockwise:(BOOL)clockwise; //弧形
+
+手动构造的方法有以下几种：
+
+	- (void)moveToPoint:(CGPoint)point; // 从某个点开始绘制
+	- (void)addLineToPoint:(CGPoint)point; // 从当前点添加直线到某个点
+	- (void)addCurveToPoint:(CGPoint)endPoint controlPoint1:(CGPoint)controlPoint1 controlPoint2:(CGPoint)controlPoint2; // 从当前点P0，添加三次曲线到某个点P3，这个在上面的贝塞尔曲线介绍有提到
+	- (void)addQuadCurveToPoint:(CGPoint)endPoint controlPoint:(CGPoint)controlPoint; // 从当前点P0，添加二次曲线到某个点P2，控制点为P1，这个在上面的贝塞尔曲线介绍有提到
+	- (void)addArcWithCenter:(CGPoint)center radius:(CGFloat)radius startAngle:(CGFloat)startAngle endAngle:(CGFloat)endAngle clockwise:(BOOL)clockwise NS_AVAILABLE_IOS(4_0); //添加弧
+
+假如我们要绘制一段二次贝塞尔曲线，可以这样画：
+
+	UIBezierPath *path = [UIBezierPath bezierPath];
+	[path moveToPoint:p0];
+	[path addQuadCurveToPoint:p2 controlPoint:p1];
+	
+以上为贝塞尔曲线的介绍和UIBezierPath的用法。
+
+
+### 绘制平滑的曲线及其涉及的计算
+
+如[上一篇文章]()所介绍的，WYChart中线型图类型有直线、波浪型曲线、尖峰型曲线等几种，关于直线，如上文介绍的，我们可以直接用`- (void)addLineToPoint:(CGPoint)point`便可以绘制，这里我们主要介绍平滑的波浪型曲线的绘制，至于尖峰型曲线，如果你了解了波浪形曲线的画法，相信就很简单了。
+
+确保你记住上文中提到的**贝塞尔曲线的概念**后，请看下图：
+
+![Draw_Curve](/img/post_img/2016-10-13-WYChart-S/Draw_Curve.jpg)
+
+假设p1，p2，p3是给出的数据中连续三个点，绘制一段平滑的贝塞尔曲线，需要满足以下四种条件：
+
+* 某个点前后的点的值都比该点大，那么该点处于这段曲线的最底部
+* 某个点前后的点的值都比该点小，那么该点处于这段曲线的最高处
+* 某个点前后的点相比该点有一大一小，那么该点处于平缓的过渡段
+* 每个点所在的曲线斜率为0
+
+由上述最后一个条件，结合贝塞尔曲线原理（在本例中皆采用二次贝塞尔曲线，也就是只有一个控制点），在上面所给图中，p1和p2，或p2和p3之间若只有一个控制点，那么必定有一个点的斜率不为0，也就是造成曲线不平滑。那么，就只能分成两段进行绘制，如图中的p1和p2之间的曲线，我们取连线的中点m1为过渡点，分别绘制p1-m1，m1-p2的二次贝塞尔曲线；在两段曲线中再分别取控制点c1和c2，各个点满足以下关系：
+
+	m1(x,y) = ((p1(x)+p2(x))/2, (p1(y)+p2(y))/2)
+	c1(x,y) = ((p1(x)+m1(x))/2, p1(y))
+	c2(x,y) = ((m1(x)+p2(x))/2, p2(y))
+	
+关于控制点的y值，分别取和p1以及p2相同，使得两点的线段斜率为0。p2-p3之间的曲线以此类推，也就是先取中点，再取控制点，最后绘制两段曲线，任意两点间需要绘制两段曲线。
+
+p1-p2曲线绘制代码如下：
+
+	UIBezierPath *path = [UIBezierPath path];
+	[path moveToPoint:p1];
+	[path addQuadCurveToPoint:m1 controlPoint:c1];
+	[path addQuadCurveToPoint:p2 controlPoint:c2];
+	
+绘制完毕 🍻🍻
+
+至于线型图另一种类型，尖峰曲线，不是平滑曲线，任何两点间都是一段向下凹的曲线，具体做法读者自行拓展，或者看WYChart源码。
+
+### CAGradientLayer绘制渐变层
+
+[官方文档](https://developer.apple.com/reference/quartzcore/cagradientlayer) 对CAGradientLayer的介绍是这样的：
+
+	The CAGradientLayer class draws a color gradient over its background color, filling the shape of the layer (including rounded corners)
+	
+顾名思义，CAGradientLayer就是绘制渐变图层。可以生成两种或更多的颜色渐变，其使用了硬件加速渲染。
+
+使用方法是赋予一个colors数组和一个locations数组，前者表明渐变颜色，后者表明渐变颜色的位置
+
+在iOS绘制渐变图层还可以使用CoreGraphic的CGGradient，其比CAGradientLayer多出了径向渐变的画法，CAGradientLayer只支持轴向渐变。
+另外，使用CoreImage框架也可以绘制渐变图层，这个有兴趣的自己探索下。
+
+在WYChart中，我们要实现的线型图渐变效果是这样的：
+
+![gradient](/img/post_img/2016-10-13-WYChart-S/Line_Gradient.png)
+
+以让线型图更加美观。
+
+绘制思路是这样的，在绘制好的渐变层上面加一个“面具”，以呈现曲线的轮廓。
+
+这个“面具”就是layer的mask属性，也是layer类型，由于需要具体的形状，我们定义一个和曲线轮廓一样的CAShapeLayer就可以了。
+
+“面具”mask就是在一个图层上加上一个有形状的图层，让原来的图层呈现出某个轮廓的边框。
+
+代码实现如下：
+
+	CAShapeLayer *maskLayer = [CAShapeLayer layer];
+	...
+	UIBezierPath  *gradientPath = [UIBezierPath bezierPathWithCGPath:linePath.CGPath];
+	//构建与曲线相同的轮廓，做法和贝塞尔曲线绘制相同
+	...
+	maskLayer.path = gradientPath;
+	CAGradientLayer *gradientLayer = [CAGradientLayer layer];
+	gradientLayer.mask = maskLayer;
+	gradientLayer.colors = cgColors;
+	
+需要注意的是，gradientLayer.colors属性要求每个元素是CGColor类型的，故我们需要对UIColor做类型转换：
+
+	NSMutableArray *cgColors = [NSMutableArray arrayWithCapacity:gradientColors.count];
+        [gradientColors enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            CGColorRef cgColor;
+            if ([obj isKindOfClass:[UIColor class]]) {
+                cgColor = ((UIColor *)obj).CGColor;
+            } else {
+                cgColor = (__bridge CGColorRef)(obj);
+            }
+            [cgColors addObject:(__bridge id)cgColor];
+        }];
+        
+这样子才能绘制出预想的效果。
+
+
+### 总结
+
+至此，我们的线型图绘制过程就完成了，我们大概通过下列几个重要过程绘制：
+
+* CALayer及CAShapeLayer的使用
+* UIBezierPath的使用
+* 绘制平滑的曲线及其涉及的计算
+* CAGradientLayer绘制渐变层
+
+将一个看似难的效果，分解成多个不同的技术点，逐个实现，便可破之。
+
+如果你对上述介绍还不是很清晰，结合源码进行阅读吧，戳👉**[WYChart](https://github.com/GeorgeWang03/WYChart)**
+
+下一篇我将继续介绍WYChart的线型图动画的实现。
