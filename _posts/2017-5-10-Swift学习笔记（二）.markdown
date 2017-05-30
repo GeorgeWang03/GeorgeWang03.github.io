@@ -197,11 +197,11 @@ swift中的属性可分为**存储属性**和**计算属性**两种类型，**�
 	* **便捷初始化**必须在根本上调用制定初始化方法
 
   如下图所示：
-  ![swift_init_designated_convinence](./swift_init_designated_convinence.png)
+  ![swift_init_designated_convinence](/img/post_img/2017-5-10-Swift学习笔记（二）/swift_init_designated_convinence.png)
   
   下面是一个更复杂的调用关系，可以看得出**指定初始化**是继承链调用的一个**“漏斗”**点
   
-  ![swift_init_designated_convinence](./swift_init_designated_convinence_01.png)
+  ![swift_init_designated_convinence](/img/post_img/2017-5-10-Swift学习笔记（二）/swift_init_designated_convinence_01.png)
   
 * **两阶段初始化**：类的初始化一般分两阶段，第一阶段类会自动初始化所有存储属性，第二阶段就是自定义初始化了，这样保证每个存储属性使用之前都能被初始化，也防止属性被其他方法初始化为预期外值，编译器会对初始化方法做以下安全检查：
 		* 当前类的**指定初始化方法**要确保在委托父类初始化方法之前初始化本类所有属性
@@ -211,7 +211,7 @@ swift中的属性可分为**存储属性**和**计算属性**两种类型，**�
 
   两个阶段的具体工作如下：
   
-  ![](swift_init_two_phase_01.png)
+  ![](/img/post_img/2017-5-10-Swift学习笔记（二）/swift_init_two_phase_01.png)
   
   总的来说就是，第一阶段由当前类沿着继承链上溯去分配内存并初始化，第二阶段由根类下溯，执行自定义的初始化
   
