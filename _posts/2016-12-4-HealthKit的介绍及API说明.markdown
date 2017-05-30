@@ -42,9 +42,11 @@ tags:
 		if ([HKHealthStore isHealthDataAvailable]) {
     		// add code to use HealthKit here...
 		}
+
 3.创建health store，每个app只需要一个：
 
 		self.healthStore = [[HKHealthStore alloc] init];
+
 4.为应用授权，弹出健康数据权限页面，这个参照官方demo
 
 5.在Info.plist中设置授权时的提醒信息，**NSHealthShareUsageDescription**设置读提醒信息，**NSHealthUpdateUsageDescription**设置写提醒信息
