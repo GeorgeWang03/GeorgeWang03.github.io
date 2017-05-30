@@ -5,10 +5,8 @@ date:       2016-12-4 20:24:00
 author:     "GeorgeWang"
 header-img: "img/post-bg-miui6.jpg"
 tags:
-    - WYChart
-    - 开源
-    - 绘制
-    - 交互
+    - HealthKit
+    - 教程
 ---
 
 
