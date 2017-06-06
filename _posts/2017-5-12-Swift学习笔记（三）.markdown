@@ -1,0 +1,250 @@
+---
+layout:     post
+title:      "Swift学习笔记（三）"
+date:       2017-5-15 20:40:00
+author:     "GeorgeWang"
+header-img: "img/post-bg-miui6.jpg"
+tags:
+    - Swift
+---
+
+
+## 1.可选链
+* 可选链是基于可能为nil的实例调用属性、方法、下标的过程，当调用链上任何一环为nil，整个调用将“优雅地”失败
+
+### 1.1 可选链作为备选的强拆包
+* 可选链在调用属性、方法、下标的时候，在后方加上`?`，就像`!`强拆包一样，不同的是，强拆包不成功时，会报runtime error，而可选链则会“优雅地”失败
+* 可选链的返回值是**可选类型**，就算调用的属性、方法、下标是不可选的也是这样，如：
+
+		if let roomCount = john.residence?.numberOfRooms {
+    		print("John's residence has \(roomCount) room(s).")
+		} else {
+    		print("Unable to retrieve the number of rooms.")
+		}
+		
+  `john.residence`有可能为nil，调用属性`numberOfRooms`时使用可选链，此时属性`numberOfRooms`返回类型是可选`Int?`而不是`Int`，当`john.residence`为nil时，`numberOfRooms`同样为nil，因此`roomCount`为nil
+  
+### 1.2 通过可选链读取属性
+* 我们可以通过可选链读取不止一层的属性、方法、下标，比如读取属性的属性的方法
+
+		func createAddress() -> Address {
+    		print("Function was called.")
+    
+    		...
+    
+    		return someAddress
+		}
+		john.residence?.address = createAddress()
+		
+  当`john.residence`为nil的时候，createAddress()不会调用
+  
+### 1.3 通过可选链调用实例方法
+* 我们可以通过可选链调用实例方法，然后判断是否调用成功，即使方法没有返回值，如：
+
+		func printNumberOfRooms() {
+    		print("The number of rooms is \(numberOfRooms)")
+		}
+		
+		if john.residence?.printNumberOfRooms() != nil ...
+		
+  `printNumberOfRooms()`没有返回值或者说返回值为Void，但在swift中，Void代表空的turple或`()`，也就是调用成功还是会有返回值的
+  当调用失败的时候，由于使用可选链，返回值并不是**Void**而是**Void?**，也就是说，调用不成功返回值为nil，因此上面调用通过`john.residence?.printNumberOfRooms() != nil`判断调用是否成功
+  此外，为属性赋值也可以使用可选链，如：
+  
+  		if (john.residence?.address = someAddress) != nil
+  		
+  通过`set`设置属性，返回值为Void?，失败的时候返回nil，道理一致
+  
+### 1.4 通过可选链使用实例下标
+* 和属性、方法一样，我们也可以通过可选链使用实例的下标语法，如：
+
+		if let firstRoomName = john.residence?[0].name {...} else {...}
+		john.residence?[0] = Room(name: "Bathroom")
+		
+  当`john.residence`为nil时，无论通过下标是读取还是设置，都返回nil，即调用失败
+ 
+* 可选链操作二级下标：
+
+		var testScores = ["Dave": [86, 82, 84], "Bev": [79, 94, 81]]
+		testScores["Dave"]?[0] = 91
+		
+  由于`testScores["Dave"]`返回值为可选类型，因此加上`?`使用可选链让代码更加可靠
+  
+  
+### 1.5 链接多级可选链
+* 我们可以通过多重可选链取得深层的属性、方法、下标，不过最终的返回类型并不会随着链接层次的加深而变化，需要注意两点：
+	* 如果本来调用的类型不是可选类型，无论多少级可选链，都会返回该类型的可选类型，如：`Int`会变成`Int?`
+	* 如果本来调用的类型就是可选类型，无论多少级可选链，都还是返回该类型，如：`Int?`还是返回`Int?`
+
+  如：
+  
+		if let johnsStreet = john.residence?.address?.street {
+    		print("John's street name is \(johnsStreet).")
+		} else {
+    		print("Unable to retrieve the address.")
+		}
+		
+  尽管`john.residence?.address?`为连续两级可选链，最终返回的还是`String?`类型
+  
+### 1.6 链接返回可选值的方法
+* 和属性一样，我们也可以多层级使用可选链并调用深层次方法，有必要的时候可以通过方法的**可选返回值**继续**可选链**调用，如：
+
+		if let beginsWithThe =
+    john.residence?.address?.buildingIdentifier()?.hasPrefix("The")
+    
+  通过`john.residence?.address?`两层可选链，`buildingIdentifier()`返回`String?`可选类型，紧接着再可选链调用`hasPrefix("The")`，返回`Bool?`
+  不过需要注意的是，`buildingIdentifier()？`链接的是方法的返回值，不是方法本身
+  
+  
+## 2.错误处理
+* swift和OC一样，用NSError来处理错误
+
+### 2.1 表示和抛出错误
+* 表示错误的类型遵从Error协议，枚举是一个典型和常用的表示错误的类型
+* 抛出错误以表示程序无法继续，如下：
+
+		throw VendingMachineError.insufficientFunds(coinsNeeded: 5)
+  
+  `VendingMachineError`是枚举，`insufficientFunds`是case
+  
+### 2.2 处理错误
+* 处理错误有四种方式：
+	* 通过抛出函数传出错误（Propagating Errors Using Throwing Functions）
+	* do-catch处理错误
+	* 以可选值来处理错误（handle the error as an optional value）
+	* 断言错误不会出现
+
+* 通过`try`、`try?` or `try!`来标记方法的调用可以抛出错误
+
+### 2.3 通过抛出函数传出错误
+* 在函数的参数括号之后，返回值值钱加上关键字`throws`以表示为抛出函数（throwing funciton），如：`func canThrowErrors() throws -> String`
+* 抛出函数在函数内部throw一个错误，传递给调用栈的上一层的函数，直到错误被处理
+* 值得注意的是，非抛出函数（没有添加throws关键字）不能传出错误，也就是必须在当前函数内部处理错误
+* 错误抛出的函数，要不在当前处理，要不继续传递给上一层调用栈，当前处理如：
+
+			struct PurchasedSnack {
+    			let name: String
+    			init(name: String, vendingMachine: VendingMachine) throws {
+        			try vendingMachine.vend(itemNamed: name)
+        			self.name = name
+    			}
+			}
+
+### 2.4 do-catch处理错误
+* 一般处理形式如下：
+
+		do {
+    		try expression
+    		statements
+		} catch pattern 1 {
+    		statements
+		} catch pattern 2 where condition {
+    		statements
+		}
+		
+  **try**可能会抛出错误的函数，如果没有出错，继续执行**do模块**剩余的操作，如果出错，则在后续的每个**catch**做错误类型匹配，匹配得到就处理，匹配不到的话继续传出错误到上层调用栈
+  
+### 2.5 以可选值来处理错误
+* 通过可选值处理错误，出错的时候返回nil，不出错返回正常值，这样可以简单的对所有错误做处理，形式如下：
+
+		let x = try? someThrowingFunction()
+		
+  相当于：
+  
+  		let y: Int?
+		do {
+    		y = try someThrowingFunction()
+		} catch {
+    		y = nil
+		}
+		
+### 2.6 断言错误不会出现
+* 如果你确保函数调用不会出错，那么可以用`try!`来断言，但是一旦断言失败，将抛出`runtime error`，如下：
+
+		let photo = try! loadImage(atPath: "./Resources/John Appleseed.jpg")
+
+## 2.7 指定清理操作
+* 通过关键字`defer`声明一个块操作，在退出当前代码块（最外层的花括号范围）之后执行，无论是否以`return`、`break`或抛出错误的形式退出的
+* 常见的像关闭文件读取器，释放内存等，如下：
+
+		func processFile(filename: String) throws {
+    		if exists(filename) {
+        		let file = open(filename)
+        		defer {
+            		close(file)
+        		}
+    		}
+		}
+		
+  `if`代码块执行完之后**defer**会被执行
+  
+* 值得注意的是，多个defer的执行顺序是反序的，就是越早声明越慢执行
+
+# 3.类型铸造（Type Casting）
+* **类型铸造**用于检测实例类型和类型转换（类实例转换成超类或者子类 类型），主要由两个关键字实现：`is`和`as`；此外还可以用于检测协议是否遵从
+* 如果两个类都继承自同一个基类，当我们用两个类的实例去初始化一个数组的时候，该数组通过**类型铸造**会变成**基类类型**，比如在遍历的时候，类型就是基类
+* 通过`is`判断某个实例是否处于某个类的子类类型，如同OC的`isKindOfClass:`
+* 使用`as?`和`as!`来“向下转换”，把实例转换为子类类型(注意是子类不是父类)，区别在于，前者返回可选类型，后者强制拆包返回确切类型，失败时会出错，用法如：`let val = instance as? SomeClass`
+* **Any 和 AnyObject：**用于表示不确定的类型，区别如下：
+	* **Any** 可以表示任意类型，包括值类型、类、函数
+	* **AnyObject** 只表示类实例
+
+  例如：`var things = [Any]()`，该数组可以存储包括浮点数、整数、函数、类实例、值类型实例
+  
+* 官方文档最后一个例子是很懂
+
+# 4.嵌套类型（Nested Types）
+* **类型嵌套** 可以让我们在某个类或结构体中嵌套定义类、结构体、枚举
+* 在外部使用嵌套类型要加上类型前缀，如：`let heartsSymbol = BlackjackCard.Suit.hearts.rawValue`，`Suit`属于`BlackjackCard`的枚举嵌套类型，`hearts`则是枚举`Suit`的case；不过在内部上下文中则不需要加前缀
+
+# 5.扩展（Extensions）
+* **扩展**允许我们为类、结构体、枚举、协议添加新的功能，有点像OC的Category，不同的是swift的扩展没有名字，而且不止于类，还有协议、结构体、枚举
+* 需要注意的是，扩展可以增加功能，但不能覆盖已经存在的功能
+* **扩展**有几大主要功能：
+	* 添加实例计算属性和类型计算属性，不能添加存储属性，也不能为已存在属性添加观察
+	* 定义实例方法和类型方法
+	* 添加新初始化方法
+	* 声明下标操作
+	* 声明使用嵌套类型
+	* 让已存在的类型遵从协议
+
+  此外，我们还可以在协议扩展中实现协议内容
+  
+## 5.1 扩展语法
+* `extension SomeType {}` 或 `extension SomeType: SomeProtocol, AnotherProtocol {}`
+
+## 5.2 计算属性
+## 5.3 初始化方法
+* 扩展可以添加初始化方法，不过只能添加**便捷初始化**，不能添加**指定初始化**或**注销方法**
+* 在扩展中添加初始化方法依然要保证每个属性都被初始化
+
+## 5.4 添加方法
+* 比如为`Int`类型添加一个方法：
+
+		extension Int {
+    		func repetitions(task: () -> Void) {
+        		for _ in 0..<self {
+            		task()
+        		}
+    		}
+		}
+		
+  之后可以这样用：
+  
+  		3.repetitions {
+    		print("Hello!")
+		}
+		
+* 可变的实例方法，在前面的学习中知道，结构体或枚举，如果在实例方法中想修改自身的值，那么必须加上关键字`mutating`，扩展中也不例外，如果要修改自身的值，也要添加关键字，如：
+
+		extension Int {
+    		mutating func square() {
+        		self = self * self
+    		}
+		}
+		
+## 5.5 下标
+* 和正常情况下一样定义就可以
+
+## 5.6 嵌套类型
+* 也是和正常情况一样添加

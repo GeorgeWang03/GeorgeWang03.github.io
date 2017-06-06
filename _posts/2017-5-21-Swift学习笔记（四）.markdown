@@ -1,0 +1,148 @@
+---
+layout:     post
+title:      "Swift学习笔记（四）"
+date:       2017-5-21 20:33:00
+author:     "GeorgeWang"
+header-img: "img/post-bg-miui6.jpg"
+tags:
+    - Swift
+---
+
+## 1.协议（Protocol）
+* 协议定义了一张关于属性、方法和其他要求的蓝图，类、结构体和枚举可以遵从协议并实现要求的功能；协议要求的内容可以在协议的扩展中实现
+
+### 1.1 协议语法
+* 协议的定义很简单：
+
+		protocol SomeProtocol {}
+		
+  遵从协议如：
+  
+  		struct SomeStructure: FirstProtocol, AnotherProtocol {}
+  		class SomeClass: SomeSuperclass, FirstProtocol, AnotherProtocol {}
+  		
+  协议要放在继承类的后面
+  
+### 1.2 定义属性
+* 协议可以定义属性，不过只能定义属性名称和类型，**不能**定义属性的存储或计算属性，可以定义属性必须为可读或者可读可写
+* 属性声明为可读可写时，实现属性不能为read-only或者常量
+* 可读可写分别通过`get`和`set`表示，如：
+
+		protocol SomeProtocol {
+    		var mustBeSettable: Int { get set }
+    		var doesNotNeedToBeSettable: Int { get }
+		}
+		
+* 类型属性在协议中定义时，必须加上`static`，尽管在实现中可以使用`class`关键词
+
+### 1.3 定义方法
+* 协议可以定义实例方法和类型方法，类型方法依然要加上`static`关键词，此外，不需要加上方法体(花括号部分)，参数可以定义但不能有默认值
+
+		protocol SomeProtocol {
+    		static func someTypeMethod()
+    		func random() -> Double
+		}
+		
+### 1.4 定义可变方法
+* 值类型（结构体和枚举）可以定义可变方法（mutate method），在协议中也可以先声明，规则是在普通方法前面加上`mutating`关键词，不过如果是类实现该协议方法，不需要加上`mutating`关键字，因为这个关键字只有值类型可以用
+
+		protocol Togglable {
+    		mutating func toggle()
+		}
+		
+### 1.5 初始化方法
+* 协议中定义初始化方法和正常的方法一样，只是不加上方法体
+* 也可以**实现时**在方法前面加上`required`关键字，以保证遵从协议的类的所有子类都实现该方法，不过此时在实现中就不能添加`final`关键词了
+
+		class SomeClass: SomeProtocol {
+    		required init(someParameter: Int) {
+        		// initializer implementation goes here
+    		}
+		}
+* 如果协议和基类同时定义了相同的**指定初始化方法**，那么**实现时**在方法前面加上`required`和`override`关键字
+* 协议中还可以定义**可失败**初始化方法，详情看初始化方法介绍
+
+### 1.6 协议是一种类型
+* 在swift中，协议是作为一种类型存在，因此我们可以：
+	* 作为方法的参数或返回值类型
+	* 作为常量、变量、属性的类型
+	* 作为容器的元素类型
+
+### 1.7 委托（Delegation）
+* 委托是一种设计模式，把类或结构体的某些任务移交（委托）其他类型的实例去完成。这种设计模式通过定义**协议**来明确委托对象的任务，这样保证了委托的任务能够完成。委托能够用于响应特定操作或者获取数据而不需要关心具体的实现。
+
+### 1.8 在扩展中实现协议内容
+* 我们可以在某个类型的扩展中遵从并实现某个协议，即使我们没有访问该类型的权限，如：
+
+		protocol TextRepresentable {
+    		var textualDescription: String { get }
+		}
+		
+		extension Dice: TextRepresentable {
+    		var textualDescription: String {
+        		return "A \(sides)-sided dice"
+    		}
+		}
+		
+* 如果一个类型早已遵从并实现了一个协议个内容，但并没有在代码中表示遵从该协议，我们可以在一个空的扩展中声明遵从该协议，如下：
+
+		struct Hamster {
+    		var name: String
+    		var textualDescription: String {
+        		return "A hamster named \(name)"
+    		}
+		}
+		extension Hamster: TextRepresentable {}
+		
+  一个类型并不是在实现协议所有内容后就自动遵从该协议，还要明确声明
+  
+### 1.9 协议类型的容器
+* 我们可以把数组之类的容器定义为某个协议类型的，这样相当于每个元素都是抽象类型：
+
+		let things: [TextRepresentable] = [game, d12, simonTheHamster]
+		for thing in things {
+    		print(thing.textualDescription)
+		}
+		
+* **协议的继承**，swift的协议支持继承，并且定义更多的要求；和类的继承很相似，不同的是，协议可以多继承，声明时以逗号隔开，如：
+
+		protocol InheritingProtocol: SomeProtocol, AnotherProtocol {}
+		
+### 1.10 类专属的协议
+* 通过在协议的继承项的**最前面**加入`class`关键词表明协议是类专属的，如：
+
+		protocol SomeClassOnlyProtocol: class, SomeInheritedProtocol {}
+		
+* 当我们在协议中声明了引用类型的时候，为了防止值类型的誓使用，这时候就要将协议声明为类专属
+
+### 1.11 协议组合
+* 声明某个类型遵从协议，可以有多个，用`&`链接起来，如：
+
+		func wishHappyBirthday(to celebrator: Named & Aged) {}
+		
+### 1.12 检测协议是否遵从
+* 使用`is`、`as?`和`as!`来判断实例示范遵从协议，区别如下：
+	* `is`返回布尔值
+	* `as?`当遵从时返回协议类型的实例，反之返回nil
+	* `as!`遵从时返回协议类型实例，反之抛出runtime error
+	
+  如：
+  
+   		if let objectWithArea = object as? HasArea
+   		
+### 1.13 可选的协议要求
+* 我们可以和OC一样定义可选的协议要求，但是必须加上`@objc`和`optional`，并且值类型不能采用该协议，如：
+
+		@objc protocol CounterDataSource {
+    		@objc optional func increment(forCount count: Int) -> Int
+    		@objc optional var fixedIncrement: Int { get }
+		}
+		
+* 需要注意的是，当我们把协议的属性或方法定义为可选要求是，他们的类型自然变成可选的，例如：`(Int) -> String` 变成 `((Int) -> String)?`，因此也可以使用**可选链**
+
+### 1.14 协议扩展
+* 我们可以在协议的扩展中实现协议的内容，这样子每个继承协议的类型都能直接调用协议的实现而不用自己去实现
+* 当我们在服从的类型中也提供了协议的实现时，该实现覆盖了协议扩展中的默认实现
+* 我们可以为协议扩展添加限制，只有在满足限制之后该扩展才有效，使用`where`关键字和其内容，如：
+
+		extension Collection where Iterator.Element: TextRepresentable {}

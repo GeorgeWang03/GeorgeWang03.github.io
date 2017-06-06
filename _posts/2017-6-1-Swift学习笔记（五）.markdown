@@ -1,0 +1,249 @@
+---
+layout:     post
+title:      "Swift学习笔记（五）"
+date:       2017-6-1 20:50:00
+author:     "GeorgeWang"
+header-img: "img/post-bg-miui6.jpg"
+tags:
+    - Swift
+---
+
+## 1.泛型（Generics）
+* swift支持泛型，泛型让代码更灵活，重用性更高；在swift中像数组、字典这些容器，都适用泛型，如声明一个Int类型的数组
+
+### 1.1 泛型函数
+* 把泛型应用到函数参数中，让原本类型固定的参数可以随时变换类型，如一个把参数值互换的函数，有了泛型更加灵活
+* 由于swift是类型安全的，所以错误的类型赋值会导致编译不通过
+* 泛型函数，在函数名，参数前面加上`<T>`，其中T代表泛型，调用时可以传入指定类型或自动根据参数去设置类型，如下：
+
+		func swapTwoValues<T>(_ a: inout T, _ b: inout T)
+		// 调用
+		swapTwoValues(&someInt, &anotherInt)
+		swapTwoValues(&someString, &anotherString)
+		
+  上面，函数调用的时候，编译器根据参数类型，确定了泛型`T`的类型
+  
+* 上面提到的泛型声明`<T>`，也称为类型参数，可以有多个类型参数，用逗号隔开，如：`<T, U>`，类型参数在函数调用，参数传入时被确定，而且类型参数不仅用于参数类型，还用于返回类型、函数注释
+* 类型参数的命名一般只用一个大写字母表示
+
+### 1.2 泛型类型（Generic Types）
+* swift标准库有泛型数组、字典等类型，我们也可以自定义泛型类型，如泛型类、结构体、枚举，例如定义一个泛型栈：
+
+		struct Stack<Element> {
+    		var items = [Element]()
+    		mutating func push(_ item: Element) {
+        		items.append(item)
+    		}
+    		mutating func pop() -> Element {
+        		return items.removeLast()
+    		}
+		}
+		// 使用
+		var stackOfStrings = Stack<String>()
+		stackOfStrings.push("uno")
+		
+### 1.3 泛型类型的扩展
+* 当我们从一个泛型类型声明扩展的时候，在扩展中，不需要再次声明泛型类型参数，直接使用就可以
+
+### 1.4 类型约束
+* 我们可以为类型参数添加约束，如同字典一样，每个Key-Value键值对中的Key都要求是**Hashtable**的
+* 做法如下：
+
+		func someFunction<T: SomeClass, U: SomeProtocol>(someT: T, someU: U)
+		
+  在类型参数后面加上指定类的类型、遵从的协议等信息
+  
+### 1.5 关联类型（Associated Types）
+* 在**协议**声明时，我们可以定义一个关联类型，作为泛型，然后在协议实现的类型中，指定关联类型；声明时使用`associatedtype`关键字，如：
+
+		protocol Container {
+    		associatedtype Item
+    		mutating func append(_ item: Item)
+    		var count: Int { get }
+    		subscript(i: Int) -> Item { get }
+		}
+		
+  然后在实现中，我们可以用`typealias`明确指定关联类型的具体类型，如：
+  
+  		struct IntStack: Container {
+    		// original IntStack implementation
+     		...
+    		// conformance to the Container protocol
+    		typealias Item = Int
+    		mutating func append(_ item: Int) {
+        		self.push(item)
+    		}
+    		var count: Int {
+        		return items.count
+    		}
+    		subscript(i: Int) -> Int {
+        		return items[i]
+    		}
+		}
+		
+  上面例子中的`typealias Item = Int`泛型类型也可以不用指出，因为swift的类型参考会自动识别我们实现方法的参数的类型，因此我们还可以将关联类型设置为 协议实现类型 的 泛型，如下：
+  
+  		struct Stack<Element>: Container {
+    		// original Stack<Element> implementation
+     		...
+    		// conformance to the Container protocol
+    		mutating func append(_ item: Element) {
+        		self.push(item)
+    		}
+    		var count: Int {
+        		return items.count
+    		}
+    		subscript(i: Int) -> Element {
+        		return items[i]
+    		}
+		}
+ 
+### 1.6 泛型 Where 句子
+* 我们可以为泛型函数的关联类型添加约束。主要通过`where`句子来实现，**where**句子的内容主要是声明**关联类型的约束**或者**关联类型与某类型的相等关系**，如下：
+
+		func allItemsMatch<C1: Container, C2: Container>
+    		(_ someContainer: C1, _ anotherContainer: C2) -> Bool
+    		where C1.Item == C2.Item, C1.Item: Equatable {
+        
+        		// Check that both containers contain the same number of items.
+        		if someContainer.count != anotherContainer.count {
+            		return false
+        		}
+        
+        		// Check each pair of items to see if they are equivalent.
+        		for i in 0..<someContainer.count {
+            		if someContainer[i] != anotherContainer[i] {
+                		return false
+            		}
+        		}
+        
+        		// All items match, so return true.
+        		return true
+		}
+  泛型函数**allItemsMatch**声明两个类型参数C1和C2，他们都遵从Container协议，函数参数someContainer和anotherContainer分别为C1和C2类型，后续的where子句添加约束，表示C1.Item关联类型和C2.Item关联类型应该是一致的，C1.Item关联类型还应该遵从Equatable协议，这表明，someContainer和anotherContainer的元素应该是相同类型的；
+  在函数实现中，由于someContainer和anotherContainer都遵从Container协议，因此我们可以用`.count`和`[i]下标`来检测两个容器内容是否一样，比如传入一个栈和一个数组
+  
+### 1.7 在扩展中使用where子句
+* 除了在泛型函数中使用where子句为关联类型提供约束，我们也可以在扩展中做同样的事， 如：
+
+		extension Stack where Element: Equatable // 结构体扩展，指定泛型的约束
+		extension Container where Item: Equatable // 协议扩展，指定关联类型约束
+		extension Container where Item == Double // 协议扩展，指定关联类型约束
+		
+## 2.进阶操作
+* 除了基础操作，swift还有一些进阶操作，比如按位和位移运算、非溢出运算等，我们还可以通过`prefix`、`infix`、`postfix`等来对运算符做重载和定义
+
+### 2.1 位运算
+* 位运算和C语言中的一样，没什么特殊
+
+### 2.2 溢出操作
+* 当我们把一个数字赋给变量或常量，超过他们能存储的范围时，swift会报error而不是接受这个数值而导致存储了无效的数值，这样提高了安全性
+* 例如：
+
+		var potentialOverflow = Int16.max
+		// 把16位整数最大值32767赋给变量
+		potentialOverflow += 1
+		// 继续加1将导致错误
+		
+  当错误出现时我们最好提供处理方法
+  
+* 对于溢出还可以有另外的处理方法，就是使用`&+`、`&*`、`&-`操作符，他们的意思是，运算后如果溢出，将只保留非溢出的部分，如下：
+
+		var unsignedOverflow = UInt8.max
+		unsignedOverflow = unsignedOverflow &+ 1
+		
+  unsignedOverflow加1之后溢出了，这个时候应该是`100000000`，由于UInt8只有8位，因此只保留前8位，就是`00000000`，结果就是0
+  减法如：
+  
+  		var unsignedOverflow = UInt8.min
+  		unsignedOverflow = unsignedOverflow &- 1
+  		
+  `00000000`-`00000001`结果应该是`11111111`也就是255
+  规则也适用于有符号整数，如：
+  
+  		var signedOverflow = Int8.min
+		signedOverflow = signedOverflow &- 1
+		
+  Int8.min应该是-128，也就是`10000000`，减去1变成`01111111`，就是127
+  
+### 2.3 优先和结合
+* swift的+、-、*、／、%依然有运算优先级，大体和C语言OC相同，但是有一些不同，具体参照swift标准库
+
+### 2.4 操作方法（运算符重载）
+* 类和结构体可以为已有的操作符提供自定义实现，就像C++语言中的运算符重载，如下：
+
+		struct Vector2D {
+    		var x = 0.0, y = 0.0
+		}
+ 
+		extension Vector2D {
+    		static func + (left: Vector2D, right: Vector2D) -> Vector2D {
+        		return Vector2D(x: left.x + right.x, y: left.y + right.y)
+    		}
+		}
+		let vector = Vector2D(x: 3.0, y: 1.0)
+		let anotherVector = Vector2D(x: 2.0, y: 4.0)
+		let combinedVector = vector + anotherVector
+		
+  上面例子为结构体Vector2D添加了`+`运算符重载，实例相加的结果应该是`(5.0, 5.0)`，需要注意，操作方法是类型方法，使用`static`关键词
+  
+* 除了二元运算符，我们还可以重载一元运算符，`-a`、`a!`等，如下：
+
+		extension Vector2D {
+    		static prefix func - (vector: Vector2D) -> Vector2D {
+        		return Vector2D(x: -vector.x, y: -vector.y)
+    		}
+		}
+		
+		let positive = Vector2D(x: 3.0, y: 4.0)
+		let negative = -positive
+		// 结果为(-3.0, -4.0)
+		
+  上面例子重载了`-`一元操作符，使用关键词`prefix`表示放在前面，是一元的，如果是`a!`的`!`操作符重载，那应该用`postfix`表示后缀操作
+  
+* **复合赋值运算符**，我们还可以重载`+=`、`-=`、`==`、`!=`等运算符，如：
+
+		extension Vector2D {
+    		static func += (left: inout Vector2D, right: Vector2D) {
+        		left = left + right
+    		}
+		}
+		//
+		extension Vector2D {
+    		static func == (left: Vector2D, right: Vector2D) -> Bool {
+        		return (left.x == right.x) && (left.y == right.y)
+		    }
+		}
+		
+  但我们不能重载`=`、`?:`运算符
+  
+### 2.5 自定义操作符
+* 我们可以自定义操作符，首先要在全局定义操作符，使用`prefix`、`infix`、`postfix`表明是什么类型的操作符，如下：
+
+		prefix operator +++
+		
+  前置操作符实现：
+  
+  		extension Vector2D {
+    		static prefix func +++ (vector: inout Vector2D) -> Vector2D {
+        		vector += vector
+        		return vector
+    		}
+		}
+ 
+		var toBeDoubled = Vector2D(x: 1.0, y: 4.0)
+		let afterDoubling = +++toBeDoubled
+
+  二元操作符：
+  
+  		infix operator +-: AdditionPrecedence
+		extension Vector2D {
+    		static func +- (left: Vector2D, right: Vector2D) -> Vector2D {
+        		return Vector2D(x: left.x + right.x, y: left.y - right.y)
+    		}
+		}
+		let firstVector = Vector2D(x: 1.0, y: 2.0)
+		let secondVector = Vector2D(x: 3.0, y: 4.0)
+		let plusMinusVector = firstVector +- secondVector
+		
+* 需要注意的是，我们没有定义自定义操作符的优先级，但如果前置运算符和后置运算符一起的时候，后置运算符优先
