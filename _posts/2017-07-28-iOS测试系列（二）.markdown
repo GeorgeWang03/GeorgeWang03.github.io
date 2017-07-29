@@ -1,0 +1,10 @@
+---
+layout:     post
+title:      "iOS测试系列（二）"
+date:       2017-07-27 20:11:00
+author:     "GeorgeWang"
+header-img: "img/post-bg-miui6.jpg"
+tags:
+    - 测试
+---
+

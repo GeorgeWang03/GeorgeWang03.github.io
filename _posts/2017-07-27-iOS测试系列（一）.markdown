@@ -1,0 +1,62 @@
+---
+layout:     post
+title:      "iOS测试系列（一）"
+date:       2017-07-27 20:11:00
+author:     "GeorgeWang"
+header-img: "img/post-bg-miui6.jpg"
+tags:
+    - 测试
+---
+
+## 前言
+
+测试是产品开发中很重要的一个环节，但也是平时容易被忽视和疏漏的；虽然在完成开发之后，测试组可能还会对产品做无数次测试，但我们开发人员来开发过程中做好单元测试，能提早发现代码中存在的问题，会让代码更加健壮，减少漏洞风险。
+
+iOS开发（或者MacOS、tvOS、watchOS等）中，单元测试有多种方式，主要分为Xcode提供的以及第三方测试框架这两类：
+
+* Xcode自带
+	* **XCTest**：XCTest是Xcode自带的单元测试工具，其前身是OCUnit，随着Xcode的发展，XCTest已经越来越完善，功能也越强大
+
+* 第三方框架
+	* **GHUnit**：GHUnit是GitHub上著名的开源测试框架，可视化、开源、扩展等功能，让其相比XCTest更加强大（现在的XCTest也很完善了）
+	* **OCMock**：
+
+以上三种就是比较主流的测试Xcode单元测试途径，其他的，还有一些其他测试工具、测试方式，如：
+
+* **KIF**：界面测试工具
+* **GitHub + Jenkins + TestFlight**：自动化测试
+* **Monkey Test**：随机测试
+	
+这就是iOS开发（或者MacOS、tvOS、watchOS等）中常见的测试方式。
+当然，好的测试的前提是，代码要有好的架构，这就关系到我们平时使用的设计模式了，如使用**MVC、MVVP、VIPER、Flux**等设计模式，以及**ReactiveCocoa、RxSwift**等函数式编程框架，都有助于测试的进行。所以平时编码过程，对代码的架构设计多加注意，不仅能减少代码量、更方便测试，让后期维护更方便。至于如何更好的设计代码，那就是另外一回事了，不属于本专题的内容。
+
+在这个系列中，我将分开介绍以上几种测试的使用方法，抛砖引玉，有不当之处，望读者多多指教。当然最精华，高下立判的还是下面的参考资料，特别是官方文档和objc.io的专题。
+
+## 文章链接
+
+* [iOS测试系列（二）：XCTest的使用]()
+* [iOS测试系列（三）：GHUnit的使用]()
+* [iOS测试系列（四）：OCMock的使用]()
+* [iOS测试系列（五）：KIF界面测试工具的使用]() 
+	
+## 参考资料
+
+网络上Xcode测试相关的资料很多，但一般参考以下这些内容就能较全面地学习测试的相关技术了：
+
+* 官方文档
+	* [Test With Xcode](https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/testing_with_xcode/chapters/01-introduction.html#//apple_ref/doc/uid/TP40014132-CH1-SW1)
+	
+	* [About Xctest](https://developer.apple.com/documentation/xctest#topics)
+
+* objc.io
+	* [测试专题](https://www.objc.io/issues/15-testing/)
+
+* raywenderlich
+	* [Unit Testing Tutorial](https://www.raywenderlich.com/?p=3716)
+
+	* [KIF（界面测试）](https://www.raywenderlich.com/61419/ios-ui-testing-with-kif)
+
+	* [AutoTest（自动化测试）](https://www.raywenderlich.com/22590/beginning-automated-testing-with-xcode-part-12)
+
+* [OCMock官网](http://ocmock.org/)
+* [GHUnit Github 主页](https://github.com/gh-unit/gh-unit)
