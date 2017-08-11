@@ -1,0 +1,635 @@
+---
+layout:     post
+title:      "iOS测试系列（附录一）：objc.io测试系列笔记"
+date:       2017-07-29 14:48:00
+author:     "GeorgeWang"
+header-img: "img/post-bg-miui6.jpg"
+tags:
+    - 测试
+---
+
+## 1.行为驱动测试（Behavior-Driven Development）
+
+### 1.1 该测试什么
+* **TDD（Test-Driven Development）**，即测试驱动开发
+* **BDD（Behavior-Driven Development）**，行为驱动开发
+* **测试驱动开发**是从需求拟定阶段就写好测试用例，并伴随在整个开发过程，能及早发现问题，防止bug逃逸；**行为驱动开发**是**测试驱动开发**的进化，关注点在于设计，后续测试通过行为描述来验证，而行为的描述是需求拟定者、开发人员、测试人员共有的语言（Domain Specific Language，DSL）编写的
+* 行为驱动测试重点不在测试，而在行为本身，也就是测试行为的结果的正确性；而行为，则是测试的代码的目标功能
+
+### 1.2 BDD DSL
+* Objective-C中的BDD DSL测试可以为如下：
+
+			describe(@"move to", ^{
+
+            context(@"when the engine is running", ^{
+
+                beforeEach(^{
+                    car.engine.running = YES;
+                    [car moveTo:CGPointMake(42,0)];
+                });
+
+                it(@"should move to given position", ^{
+                    expect(car.position).to.equal(CGPointMake(42, 0));
+                });
+            });
+
+            context(@"when the engine is not running", ^{
+
+                beforeEach(^{
+                    car.engine.running = NO;
+                    [car moveTo:CGPointMake(42,0)];
+                });
+
+                it(@"should not move to given position", ^{
+                    expect(car.position).to.equal(CGPointZero);
+                });
+            });
+        });
+        
+ describe描述一个行为，context表示行为在不同状态的结果，beforeEach为状态设置条件，it断言结果并在block提供判定条件
+ 
+* 了解更多行为驱动开发语法，[点击](https://github.com/specta/specta#writing-specs)  
+
+* **BDD框架：**
+
+	* [Cedar](https://github.com/pivotal/cedar])
+	* [Kiwi](https://github.com/kiwi-bdd/Kiwi)
+	* [Specta](https://github.com/specta/specta#writing-specs)
+* **Cedar**捆绑了**matchers**和**doubles**，我们可以把doubles当作mock（这里不是很懂）；Cedar还提供了**focusing test**的配置特性，在关键字（`it`、`describe`等）前加上`f`来打包，加上`x`来关闭该测试
+* **Kiwi**捆绑**matchers**, **stubs**和**mocks**，并紧密配合XCTest，但没有像Cedar的配置功能
+* **Specta**紧密配合XCTest，并提供类似Cedar的配置特性
+* 以上三者语法相似
+* 也有Swift的BDD框架：
+
+	* [Quick](https://github.com/Quick/Quick)
+	* [Sleipnir](https://github.com/railsware/Sleipnir)
+	
+### 1.3 例子
+* **指定依赖**好的行为测试的一个前提，测试时我们应该把需要的依赖暴露在类接口上，但不是所有
+
+#### 1.3.1 事项例子
+* 有以下两个类，用于打印事项描述：
+
+		@interface EventDescriptionFormatter : NSObject
+		@property(nonatomic, strong) NSDateFormatter *dateFormatter;
+
+		- (NSString *)eventDescriptionFromEvent:(id <Event>)event;
+
+		@end		
+		
+		@protocol Event <NSObject>
+
+		@property(nonatomic, readonly) NSString *name;
+
+		@property(nonatomic, readonly) NSDate *startDate;
+		@property(nonatomic, readonly) NSDate *endDate;
+
+		@end
+		
+  行为测试的时候，其实我们关注的只是打印这个行为以及其结果，我们不关心内部实现，如dateFormatter等，所以不应该放在interface上，mocking时也可以减少一些步骤
+		
+* 具体测试例子参照网页，不赘述
+
+#### 1.3.2 控制器测试
+* 控制器是iOS应用中的核心，也应该是测试的重点
+
+### 1.4 总结
+* 行为驱动测试应该更关心一个对象的行为，而不是对象的实现
+* 更多的参考资料，[BDD](http://dannorth.net/introducing-bdd/) [TDD/BDD](http://blog.mattwynne.net/2012/11/20/tdd-vs-bdd/)， [文章测试例子代码](https://github.com/objcio/issue-15-bdd)
+
+## 2.XCTest
+
+### 2.1 XCTest如何工作
+* XCode的测试同个一个基类`XCTestCase`来进行，类中以`test`开头的方法为一个测试用例，所有我们的工作，要使用或继承自该类，可以自己定一个继承自`XCTestCase`的基类，提供一个基础属性和方法来方便我们的测试以及提供重用性
+
+### 2.2 命名
+* 作者的项目中使用`testThatIt`作为每个测试用例函数的开头，能第一眼就分辨该测试用例作用
+* 一般我们在函数命名中表明测试的类或方法，每个类的测试用例集中到一个测试类中，如：`HTTPRequest`=>`HTTPRequestTest`，如果用例多了，可以分散到`HTTPRequestTest(Category)`中
+* 如果要**disable**一个测试用例，在方法前面加上`DISABLE_`，如：
+
+		- (void)DISABLED_testThatItDoesURLEncoding
+
+### 2.3 格式(given/when/then)
+* 每个测试用例分为`given`、`when`、`then`三个部分，`given`设定好环境及变量的值，`when`调用需要测试的过程，`then`验证返回值（断言），这样子多的好处是，每个测试用例都能容易地阅读
+* 如下：
+
+		- (void)testThatItDoesURLEncoding
+		{
+    		// given
+    		NSString *searchQuery = @"$&?@";
+    		HTTPRequest *request = [HTTPRequest requestWithURL:@"/search?q=%@", searchQuery];
+
+    		// when
+    		NSString *encodedURL = request.URL;
+
+    		// then
+    		XCTAssertEqualObjects(encodedURL, @"/search?q=%24%26%3F%40");
+		}
+		
+### 2.3 重用
+* 在测试时可能有一些环境创建的代码需要不断的调用，我们可以把这些代码抽离到基类中，如CoreData Stack的创建、异步任务的创建
+
+### 2.4 仿制（Mock）
+* **mock**是让对象的特定方法返回一个预先设置的值，通过mock我们为所需要测试的类的依赖设置好预想值，从而对目标类做单独测试
+
+### 2.5 状态和无状态
+* 近几年关于有状态和无状态程序的话题很多，作者大部分地方代码无状态，少部分有状态，无状态对测试来说相对容易一些
+
+### 2.6 Core Data
+* 在基类的`-setUp`方法中创建CoreData Context，这样不用每个子类都去创建
+
+### 2.7 异步测试
+* 异步测试在XCTest中是比较困难的，因为很难保证在测试用例结束之前，异步任务会结束，比较好的方法是使用**GCD**的`dispatch_group_t`来统筹异步任务
+* 如果不用`dispatch_group_t`，我们的异步测试是这样的：
+
+		- (void)testThatItAppendsAString;
+		{
+    		NSString *s1 = @"Foo";
+    		XCTestExpectation *expectation = [self expectationWithDescription:@"Handler called"];
+    		[s1 appendString:@"Bar" resultHandler:^(NSString *result){
+        		[expectation fulfill];
+        		XCTAssertEqualObjects(result, @"FooBar");
+    		}]
+    		[self waitForExpectationsWithTimeout:0.1 handler:nil];
+		}
+		
+  很难在测试用例结束时作出断言，但如果使用`dispatch_group_t`，可以这样：
+  
+  		- (void)performGroupedBlock:(dispatch_block_t)block ZM_NON_NULL(1);
+		{
+    		dispatch_group_enter(self.dispatchGroup);
+    		[self performBlock:^{
+        		block();
+        		dispatch_group_leave(self.dispatchGroup);
+    		}];
+		}
+		
+  然后：
+  
+  		- (void)tearDown
+		{
+    		[self waitForGroup];
+    		[super tearDown];
+		}
+
+		- (void)waitForGroup;
+		{
+    		__block BOOL didComplete = NO;
+    		dispatch_group_notify(self.requestGroup, dispatch_get_main_queue(), ^{
+        		didComplete = YES;
+    		});
+    		NSDate *end = [NSDate dateWithTimeIntervalSinceNow:timeout];
+    		while (! didComplete) {
+        		NSTimeInterval const interval = 0.002;
+        		if (! [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:interval]]) {
+            		[NSThread sleepForTimeInterval:interval];
+        		}
+    		}
+		}
+		
+  即在`- (void)tearDown`方法中等待异步任务的结束
+  但是，实际测试中，我们不可能等到`- (void)tearDown`才去验证测试结果，因此我们应该在`when`步骤之后开启等待操作，然后再进行`then`步骤，可以如下：
+  
+  		#define WaitForAllGroupsToBeEmpty(timeout) \
+    		do { \
+        		if (! [self waitForGroupToBeEmptyWithTimeout:timeout]) { \
+            		XCTFail(@"Timed out waiting for groups to empty."); \
+        		} \
+    		} while (0)
+    		
+  声明宏`WaitForAllGroupsToBeEmpty(timeout)`，并把上面提到的`dispatch_group_t`等待操作封装到基类的`waitForGroupToBeEmptyWithTimeout`方法中
+  
+### 2.8 网络层测试
+
+* 平时我们对服务器api测试是比较麻烦的，在什么都不做的情况下，测试api需要不断地清空服务器数据库，重启服务器等操作，尽管这个过程可能只需要几十秒，但是，当我们的接口多起来的时候，所耗费的时间是非常惊人的，所以这种测试方法不好
+* 比较好的办法是，我们在本地做一个假服务器(`fake server`)，比如一个类似`NSURLSession`功能的`FakeTransportSession`，但是这个类只是返回我们指定的响应内容	，而且这个类有些方法或属性能让我们**mock**服务器的状态及响应数据；这样做的好处是，测试起来非常快，而且能够构建很多服务器无法做到的测试用例
+
+### 2.9 自定义断言宏(Assert Macros)
+* Xcode自带的断言有如：
+
+		XCTAssertNil(request1);
+		XCTAssertNotNil(request2);
+		XCTAssertEqualObjects(request2.path, @"/assets");
+		
+  但是这些断言有时候并不适合我们，特别是判断内容多，而且使用次数大的，如：
+  
+  		XCTAssertTrue([string isKindOfClass:[NSString class]] && ([[NSUUID alloc] initWithUUIDString:string] != nil),
+              @"'%@' is not a valid UUID string", string);
+              
+  我们可以用自定义宏把断言过程封装起来重用：
+  
+  		#define AssertIsValidUUIDString(a1) \
+    		do { \
+        		NSUUID *_u = ([a1 isKindOfClass:[NSString class]] ? [[NSUUID alloc] initWithUUIDString:(a1)] : nil); \
+        		if (_u == nil) { \
+            		XCTFail(@"'%@' is not a valid UUID string", a1); \
+        		} \
+    		} while (0)
+        
+  但是，有时我们不仅需要知道出错，还需要知道哪里出错，哪个文件哪一行代码，因此我们有必要使用`__FILE__`/`__LINE__`等宏，来构建自己的失败记录类：
+  
+  		@interface FailureRecorder : NSObject
+
+		- (instancetype)initWithTestCase:(XCTestCase *)testCase filePath:(char const *)filePath lineNumber:(NSUInteger)lineNumber;
+
+		@property (nonatomic, readonly) XCTestCase *testCase;
+		@property (nonatomic, readonly, copy) NSString *filePath;
+		@property (nonatomic, readonly) NSUInteger lineNumber;
+
+		- (void)recordFailure:(NSString *)format, ... NS_FORMAT_FUNCTION(1,2);
+
+		@end
+
+
+		#define NewFailureRecorder() \
+   			 [[FailureRecorder alloc] initWithTestCase:self filePath:__FILE__ lineNumber:__LINE__]      
+              
+              
+              
+   使用以上类，构建一个字典自定义断言输出宏：
+   
+   		#define AssertEqualDictionaries(d1, d2) \
+    		do { \
+        		[self assertDictionary:d1 isEqualToDictionary:d2 name1:#d1 name2:#d2 failureRecorder:NewFailureRecorder()]; \
+    		} while (0)
+              
+              
+   方法`assertDictionary: isEqualToDictionary: name1: name2: failureRecorder:`用于判断是否相等并使用`- (void)recordFailure:(NSString *)format, ...`来记录错误，其实现如下：
+   
+   		- (void)recordFailure:(NSString *)format, ...;
+		{
+    		va_list ap;
+    		va_start(ap, format);
+    		NSString *d = [[NSString alloc] initWithFormat:format arguments:ap];
+    		va_end(ap);
+    		[self.testCase recordFailureWithDescription:d inFile:self.filePath atLine:self.lineNumber expected:YES];
+		}
+		
+### 2.10 XCtest与Xcode／Xcode Server的整合
+* XCTest的优势是，紧密地与Xcode以及Xcode Server整合，具体有以下几个优点：
+
+	* **Focus：**在每个测试用例前面有个快捷键，能够快速启动用例，失败时按键会变成失败图标，成功时变成成功图标，很直观
+	* **Navigator：**在项目导航栏中可以看到每个测试类及拥有的测试用例，甚至是测试用例最近的测试状态
+	* **Continuous Integration：**利用**Xcode Server**的持续集成特性，在服务端自动执行所有测试用例，包括所有机型
+
+### 2.11 BDD与XCTest
+* XCTest从命名习惯以及方法上看，和BDD挺相符合，但并不是完全适合：
+
+	* **优点：**面向对象的方法进行测试，同属于一个类的测试用例放在同个测试类中，并且快捷键启动方便，导航栏查看方便，一目了然
+	* **缺点：**一些BDD的使用习惯，比如嵌套测试上下文，虽然也可以用，但是使用起来就不是很方便
+
+  总的来说，如果是中小项目，那么可以用XCTest做BDD，如果是大型项目，最好用**Kiwi**或者**Specta**
+		
+		
+		
+## 3.依赖注入
+
+* 当我们单元测试的时候，在方法里面可能会有个别变量依赖于外部对象，这会让我们的测试变得不准确，这时候需要**依赖注入（Dependency injection, DI）**来控制依赖对象为不变因子
+
+### 3.1 依赖注入的格式
+* 可以用Objective-C的**Method swizzling**来动态替换依赖方法，从而达到控制依赖注入的目的；但是也有个缺点，就是使用起来比较复杂，不直观，当依赖项多的时候，很麻烦
+
+* **依赖注入方式**有多种：
+	* **构造方法：**通过构造方法传入依赖项，声明对应的只读属性，并赋值给实例变量
+			
+			@interface Example ()
+			@property (nonatomic, strong, readonly) NSUserDefaults *userDefaults;
+			@end
+
+			@implementation Example
+			- (instancetype)initWithUserDefaults:(NSUserDefaults *userDefaults)
+			{
+    			self = [super init];
+    			if (self) {
+        			_userDefaults = userDefaults;
+    			}
+    			return self;
+			}
+			@end
+			
+	* **属性注入：**直接声明公开属性，并使用**懒加载**以保证属性不空
+
+				@interface Example
+					@property (nonatomic, strong) NSUserDefaults *userDefaults;
+					- (NSNumber *)nextReminderId;
+				@end
+				- (NSUserDefaults *)userDefaults
+				{
+    				if (!_userDefaults) {
+        				_userDefaults = [NSUserDefaults standardUserDefaults];
+    				}
+    				return _userDefaults;
+				}
+
+	* **方法注入：**如果依赖比较少以及简单，那么可以直接通过方法参数传入来达到依赖注入的目的
+
+			- (NSNumber *)nextReminderIdWithUserDefaults:(NSUserDefaults *)userDefaults
+			{
+    			...
+    			[userDefaults setObject:currentReminderId forKey:@"currentReminderId"];
+    			return currentReminderId;
+			}
+
+	* **全局上下文：**当依赖项是全局的（例如：单例），我们有两种途径来测试：1.**暴露属性**以测试时修改；2.使用**Method swizzle**
+
+	* **继承和重写：**对于使用`[self propertyGetter]`或`self.property`的依赖来说，可以直接继承某个测试类，然后重写Getter方法，从而达到依赖注入的目的
+
+### 3.2 不同形式的优缺点
+* 以上提到的五种不同依赖注入对于测试来说各有优缺点，应该根据实际情况来选择：
+	* **构造方法：**构造方法注入好处是，一开始就指明依赖，显而易见，缺点是比较笨重，特别是依赖多的时候（不过依赖太多是否违反**单一职责原则**）
+	* **属性注入：**优点是，将依赖项分散到多个属性上，我们可以随时修改依赖；缺点是依赖项分散之后，有可能造成依赖缺失，这也是为什么用懒加载；而且，属性注入要做到代码健壮不容易，如果对依赖项要求严格，我们要在**setter**中做判断，如果要**getter线程安全**，需要线程安全的逻辑；如果依赖项需要依赖第三方框架，那就更麻烦了
+	* **方法注入：**方法注入对于每次调用时都不同的依赖比较好，比较灵活
+	* **全局上下文：**使用全局注入的时候，由于所**修改的变量**或者**替换的变量**是全局的，会对其他测试造成影响，因此在测试的开始和终止函数要做启动和恢复操作；此外，除了自己用**Method swizzle**，我们还可以用第三方框架来依赖注入，网络：[Nocilla](https://github.com/luisobo/Nocilla)/[OHHTTPStubs](https://github.com/AliSoftware/OHHTTPStubs)，NSDate：[TUDelorean](https://github.com/tuenti/TUDelorean)
+	* **继承和重写：**缺点是需要创建子类，对于代码来说比较零散；优点是，如果不想修改久代码，可以通过子类重写来测试
+
+	
+### 3.3 其他
+* **该使用哪个DI框架：**一开始最好自己动手写，其实是利用[InterfaceBuilder](http://blog.8thlight.com/eric-smith/2009/04/16/dependency-inversion-principle-and-iphone.html)来做依赖注入测试，最后才是选择DI框架，最好是选择非入侵式的框架
+* **不暴露所有Hooks：**有时我们暴露初始化方法、属性、方法只是为了测试，这样却破坏我们的封装，因此，可以通过Category来暴露，并且只有测试的时候能用；不过，类的依赖本来就该暴露，如果觉得暴露出来会繁冗，应该思考下我们的设计模式是否有问题，暴露苹果提供的对象依赖（如：NSUserDefaults）是不是不太好、是否为了测试不得已公开内部实现？如果是的话应该修改类的设计或抽出依赖对象
+
+* **依赖注入影响远远超出测试**，它还关乎模块化代码，在思考依赖注入影响测试之前，应该思考如何通过依赖注入思想来模块化，组件化代码
+
+## 4.糟糕的测试
+* **自动化测试**的前提和好处：
+
+	* **更容易重构**：我们只需保持public API不变，而内部实现可以随时改变
+	* **避免回归**：回归经常出现在修改代码的时候
+	* **提供可执行的规范以及文档**：修改代码的时候我们希望了解内部实现
+	* **减少开发时间**：经过自动化测试我们可以更快的修改代码完善项目
+	* **减少开发费用**：节省时间就是节省金钱
+
+  作者的观点是：
+  
+  	* **自动化测试最好之处是允许我们后续修改代码**
+
+* **自动化测试**依据改变来进行测试用例，当代码修改的时候我们的测试是否失败？失败是否有恰当的理由，如果没有，那么修改它
+* 我们可以问自己一个问题：为什么当我们修改代码的时候，测试用例会无效？
+* **如何进行好的测试取决于为什么我们要修改代码**
+
+### 4.1 改变代码的行为
+* 当我们想改变代码行为的时候，需要做：
+	* 找到需要修改的行为的测试用例
+	* 修改测试用例以适应期望的行为
+	* 运行测试看看是否通过
+	* 如果测试失败，修改行为代码
+
+* 自动化测试给我们的好处就是，我们很容易知道需要修改哪些测试来适应新行为；**因此，从自动化测试中，我们也可以得到，平时行为测试的一些好的和坏的实践经验**
+
+### 4.2 重构：修改代码的实现，保留行为不变
+* 要想代码的实现更加简单、高效、易于扩展，可以这样：
+
+	* **不修改测试用例的情况下修改代码**：如果我们的代码足够简单、易于扩展，那么当重构的时候，我们的行为测试代码不但可以不改变，反而可以成为我们重构的引导，我们可以在重构一部分代码之后，运行测试，如果通过，说明重构正确；失败了，说明重构改变了原来的代码行为，是错误的
+	* **好的实践 F.I.R.S.T**：
+		* Fast（快）：测试可以时刻运行
+		* Isolated（独立）：测试用例不能依赖**外部因素**或者其他测试的结果
+		* Repeatable（等效）：每次运行测试用例的结果应该是一样的
+		* Self-Verifying（自我验证）：测试用例要有断言，而不是人为干预
+		* Timely（时效性）：测试要伴随着产品代码来写
+		* [更多](http://pragprog.com/magazines/2012-01/unit-tests-are-first)
+
+### 4.3 不好的实践
+* 最重要的是：**不要把测试和具体的代码实现耦合**
+
+* **不要测试私有方法**：私有的表示不公开，如果感觉需要测试私有方法，说明私有方法做的事情太多；而且，有时为了测试而暴露私有方法，如果其他开发者使用了该方法，那么就会变成公开方法了；如果非要这样，我们可以在另外一个类把该方法作为一个公开方法，然后将这个类和当前类以属性联系起来，再单独测试新类的方法；也就是说，只能测试共开方法，因为他定义了类和外界的联系，这有这样才能在任何时候方便修改类的私有实现而不担心测试用例无效
+
+* **不要Stub私有方法**：Stub私有方法不但有和测试私有方法一样的缺陷，还有额外的，**这样做会让调试变得困难，因为stub库经常用hack手段，我们不知道测试如何失败的**；私有方法的更改并不会体现在API上，如果我们stub私有方法并且测试通过，但是私有方法更改且我们不知道时，测试就有可能失败了
+
+* **不要Stub外部库**：不要在测试用例中stub外部库，否则当我们需要更换外部库的时候，测试用例理论上是能继续用的，但是由于我们stub了库，这个时候会失败；**解决办法**是使用**Umbrella Stub**（lib:Nocilla、TUDelorean）来替代外部库的整个方法，这时候不用依赖任何外部库就能测试
+
+* **Stub依赖**：Stub依赖的时候，比如`[SomeClass actionA]`，当我们觉得`actionA`不合适了，想换成`actionB`（两者目的一样），这时候有测试会失败；**解决办法**：Umbrella stub在这里可能不能用，因为我们有可能除了当前依赖，没有其他类可以完成相应功能；所以我们要在原来的类增加额外可选的实现用于测试，这样子不管是否更换依赖方法，测试的方法都不会变；可能增加一个类，功能和依赖的类一模一样，当元类改变的时候，新类也做相应操作，数据存在内存中，这样子能提高我们的测试速度
+
+* **不要测试构造函数**：构造函数一般都是用于初始化内部实现，而且和类的行为没有多大关系，所以我们没必要测试他，特别是我们有个前提：**行为测试不要测试内部实现**；我们需要做的是，如果有多个构造方法，那么用每个构造方法来初始化实例就好了
+
+### 4.4 总结
+* 这些实践经验都是基于行为测试，作者从自动化测试的要求引出了行为测试的实践经验，测试代码不能和业务代码耦合，这样子在重构或其他代码变动时时我们就不需要修改测试用例
+
+
+## 5.置换测试：Mocks, Stubs和其他
+* 平时我们测试的时候，经常是通过UI来模拟用户输入，进而测试数据库、网络等操作，但是，这样不仅**速度慢**，而且对于**数据库**、**网络**在极端情况下很难模拟，因此我们有必要模拟一些假的值来进行测试
+
+### 5.1 什么时候用Mock对象
+* 一些数据作假的途径：
+
+	* **置换（double）**：置换是通过一个类实例替换另一个类的实例，以模仿原来的类的所有功能
+	* **仿制（stub）**：仿制是让提供数据的依赖方法返回特定的值，以达到模拟测试的目的
+	* **监视（spy）**：监视，是检测某个方法被调用，可以使用断言来判断方法的参数是否正确
+	* **模仿（mock）**：模仿，和监视(spy)有点像，但除了可以监视方法调用、使用断言之外，还可以在测试开始时，设定期望结果，从而验证相关行为是否发生
+	* **作假（fake）**：作假，是一个对象实现和行为上与原对象一样，但实际上是用假数据来模拟测试，典型的例子是缓冲数据库模拟生产环境数据库
+
+  这些途径实际使用不仅仅于概念限定，可以更加灵活，测试框架也会提供这些功能
+  
+* **模拟主义和统计主义**：
+
+	* **模拟主义**：通过Mock对象，验证方法调用是否以正确参数在正确时间，更多的是单元测试，这有利于API的定义
+	* **统计主义**：不使用mock，更多的是测试状态而不是行为，这种测试比较健壮；在模拟主义中，代码行为改变的时候，如果忘记修改mock，测试会通过但是代码可能是错的；统计主义使用真实的测试，减少耦合，属于端到端的测试
+
+  选择哪种模式要依据实际情况来
+  
+### 5.2 深入代码
+* 在实际测试中，我们会根据具体情况来选择测试框架，两个常见的框架是**OCMockito**和**OCMock**，前者是轻量级的一个测试框架，可以提供Stub、Mock和一切你需要的；而**OCMock**更加强大，不仅有**OCMockito**的功能，而且有丰富的使用手段
+
+* 前提：假如我们想测试**UIApplication**的`openURL`方法，直接测试的话会跳转，当前程序会关闭，因此要**mock**：
+
+		@interface AppLinker : NSObject
+        - (instancetype)initWithApplication:(UIApplication *)application;
+        - (void)doSomething:(NSURL *)url;
+		@end
+
+  这是测试的类，**UIApplication**通过方法注入，下面是使用**OCMockito**和**OCMock**来测试
+
+* **OCMockito**一般使用方法：
+
+		UIApplication *app = mock([UIApplication class]);
+		AppLinker *linker = [[AppLinker alloc] initWithApplication:app];
+		NSURL *url = [NSURL urlWithString:@"https://google.com"];
+
+		[linker doSomething:URL];
+
+		[verify(app) openURL:url];
+		
+  这里先mock了**UIApplication**对象，然后走实际流程，最后用`[verify(app) openURL:url]`验证是否调用
+  
+* **OCMock**使用方法一：
+
+		id app = OCMClassMock([UIApplication class]);
+		AppLinker *linker = [[AppLinker alloc] initWithApplication:app];
+		NSURL *url = [NSURL urlWithString:@"https://google.com"];
+
+		[linker doSomething:url];
+
+		OCMVerify([app openURL:url]);	
+		
+  这是老版本的方法，用起来和**OCMockito**没多大区别
+  
+  **OCMock**使用方法二：
+  
+		id app = OCMClassMock([UIApplication class]);
+
+		AppLinker *linker = [[AppLinker alloc] initWithApplication:app];
+		NSURL *url = [NSURL urlWithString:@"https://google.com"];
+
+		OCMExpect([app openURL:url]);
+
+		[linker doSomething:url];
+
+		OCMVerifyAll();
+		
+		
+  新版本的用法是，使用`OCMExpect()`一开始设定期望结果，最后才调用`OCMVerifyAll()`验证起初的期望
+  
+  我们还可以**stub**类方法，这样子省去了依赖注入：
+  
+		id app = OCMClassMock([UIApplication class]);
+			OCMStub([app sharedInstance]).andReturn(app);
+
+		AppLinker *linker = [[AppLinker alloc] init];
+		NSURL *url = [NSURL urlWithString:@"https://google.com"];
+
+		[linker doSomething:url];
+
+		OCMVerify([app openURL:url]);
+		
+### 5.3 选择
+* 上面两个例子介绍了**OCMockito**和**OCMock**如何mock对象，但是实际测试，我们可能用不到mock对象那么多功能，这样做也有点冗余，因此我们可以用**假对象（fake）**：
+
+		@interface FakeApplication : NSObject
+    		@property (readwrite, nonatomic, strong) NSURL *lastOpenedURL;
+
+    		- (void)openURL:(NSURL *)url;
+		@end
+
+		@implementation FakeApplication
+    		- (void)openURL:(NSURL *)url {
+        		self.lastOpenedURL = url;
+    		}
+		@end
+		
+		// test
+		FakeApplication *app = [[FakeApplication alloc] init];
+		AppLinker *linker = [[AppLinker alloc] initWithApplication:app];
+		NSURL *url = [NSURL urlWithString:@"https://google.com"];
+
+		[linker doSomething:url];
+
+		XCAssertEqual(app.lastOpenedURL, url, @"Did not open the expected URL");
+		
+  不过，要是对mock的操作多的话，还是要mock比较好；总之就是，能不用框架就不用，以减少依赖。
+  
+### 5.4 Mock该注意的问题
+* 测试最大的问题之一是测试用例和业务代码实现耦合了，我们需要避免这些问题：
+
+	* **依赖注入**：第三节提到的依赖注入途径（方法、属性等）有利于降低测试耦合，而stubs和mock可以让其测试变得很简单
+	* **不要Mock不是你的代码**：一般mock只仅限于自己写的类，不要mock第三方框架；两个原因：1.对于第三方框架，我们不如自己的代码那么熟悉，也没那么稳定（未来API有可能更改），随意的mock让测试不怎么安全；2.mock测试原因之一是寻找尽可能的类接口，但第三方框架是固定的，因此这个寻找也没意义
+
+* 置换测试无非就是使用框架mock，或者自己fake对象，具体情况具体分析，不过mock是大有用途的
+
+
+## 6.界面测试
+* 只要测试什么比如何测试更重要，UI测试可以分为：**行为**和**美学**
+* **美学**测试不一定正确，因为会经常改变，但它还是可以通过**snapshots**来完成，下一节会介绍
+* **行为测试**首要的就是在代码中暴露用户action的接口
+* KIF、Frank和Calabash可以做界面行为测试，但是它们在可靠性和稳定性上介绍的太复杂
+* Specta和Expecta会好一些，当然XCTest更简单
+* 测试UI控件的时候，比如UIButton，我们关心的是对其操作的后续**行为**是否符合期望，而不需要知道其`target`或`action set`，这样做，即使这两者更换了，我们的测试依然有效，因为关注的是行为；对于UIKit框架中，继承自`UIControl`的控件，我们可以用`sendActionsForControlEvents:`方法来触发点击效果，并进行相关测试，如：
+
+		[_button sendActionsForControlEvent: UIControlEventTouchUpInside];
+		或
+		segments.selectedSegmentIndex = 1;
+		[segments sendActionsForControlEvent: UIControlEventValueChanged];
+		
+对于非继承自`UIControl`的控件，如`UITableView`，我们可以手动调用`tableView:didSelectRowAtIndexPath:`方法，如：
+
+		[_viewController.tableView.delegate tableView:_viewController.tableView didSelectRowAtIndexPath:[NSIndexPath indexPathForRow:0 inSection:0]];
+		expect(_viewController.navigationController.topViewController).to.beKindOf([PresentedViewController class]);
+		
+  在最后我们用`expect().to.beKindOf()`来验证跳转行为是否为跳转到指定控制器
+  
+又如`UIBarButtonItem`，我们可以使用`performSelector:withObject:`或`objc/message.h`提供的`objc_msgSend()`
+
+* 除了测试通过`UINavigationController`跳转的行为，我们还要测试直接`present`的行为，`presenting`发生在当前runloop，而`pushing`则发生在下一个runloop，[更多](https://github.com/klaaspieter/KPAViewControllerTestHelper)；也就是我们要测试`presenting`和`pushing`行为：
+
+		expect(_viewController.presentedViewController).to.beKindOf([PresentedViewController class]);
+		expect(_viewController.navigationController.topViewController).to.beKindOf([PresentedViewController class]);
+		
+* 测试UI不难，重要的是你要知道你想测试什么，要测试**行为**而不是**美学**，主要测试用户会操作的行为就可以
+
+## 7.快照测试（Snapshot Testing）
+* **快照测试**在上一节有提到，用于测试**美学（也就是UI外观）**，也称为**基于视图的测试**
+* Facebook提供的视图测试工具[FBSnapshotTestCase](https://github.com/facebook/ios-snapshot-test-case) 方便我们进行视图测试
+
+### 7.1 FBSnapshotTestCase原理
+* 原理是，通过预先准备的**Reference Snapshot**与测试用例得到的**Runtime Generated Snapshot**做对比，失败时提供**Runtime Generated Snapshot**和**Visual Difference Snapshot**区别快照；对比过程是通过将**参考快照**和**运行时视图**绘制到`CGContextRefs`，然后用`C`函数`memcmp()`比较，速度很快；测试参照图存放在`[Project]Tests／ReferenceImages/TestCaseName`文件夹，如果失败，结果存放在`/tmp`文件夹
+
+### 7.2 安装
+* 通过`Cocoapods`安装
+
+### 7.3 通过XCTest使用FBSnapshotTestCase视图测试
+* 测试类继承自`FBSnapshotTestCase`而不是`XCTestCase`，然后通过宏`FBSnapshotVerifyView(viewOrLayer, "optional identifier")`来比较；`FBSnapshotTestCase`的属性`recordMode`为`YES`会直接记录截图而不是比较，如：
+
+		@interface ORSnapshotTestCase : FBSnapshotTestCase
+		@end
+
+		@implementation ORSnapshotTestCase
+
+		- (void)testHasARedSquare
+		{
+    		// Removing this will verify instead of recording
+    		self.recordMode = YES;
+
+    		UIView *view = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 80, 80)];
+    		view.backgroundColor = [UIColor redColor];
+    		FBSnapshotVerifyView(view, nil);
+		}
+
+		@end
+
+### 7.4 缺点
+* **异步测试比较困难**：这一点，我们可以用`Specta`或者`Kiwi`来设定异步超时时间，做多次断言；也可以对异步代码提供同步选项
+* 有些组件难测试，比如某些视图一定要用frame来初始化，因此我们要记得对视图设定frame；`CATiledLayer`绘制前提是在主屏幕而且可见
+* 苹果系统有时会很细微、不易发觉地去重绘控件，比如UILabel，这个时候需要重新记录快照
+* 快照文件很大，占空间
+
+### 7.5 优点
+* 只要写一次测试用例，不用多次编译程序来手动点击测试，可以省很多时间
+* 可以在我们的代码测试中顺便测试，不用重开target之类的，大部分时间也不要求视图要在主屏幕显示才能测试
+* 便于代码审查，先是测试给出承诺，再是快照证明承诺的正确，最后是代码变更，这个时候我们很容易就知道界面会发生什么变化，了然于胸
+* 界面设计师也可以通过图片了解测试情况
+* 提高测试覆盖率
+* 速度快，每个测试用例只需要很短的时间
+
+### 7.6 工具（FBSnapShots + Specta + Expecta）
+* **Specta 和 Expecta**会比XCTest更简单、可读性高，另外还有**Expecta+Snapshots**这个工具，为**Expecta**提供类似**FBSnapshotTestCase**的功能，在`cocoapods`中：
+
+		target 'MyApp Tests', :exclusive => true do
+    		pod 'Specta','~> 1.0'
+    		pod 'Expecta', '~> 1.0'
+    		pod 'Expecta+Snapshots', '~> 1.0'
+		end
+		
+* 测试过程
+
+		SpecBegin(ORMusicViewController)
+
+		it (@"notations in black and white look correct", ^{
+    		UIView *notationView = [[ORMusicNotationView alloc] initWithFrame:CGRectMake(0, 0, 80, 320)];
+    		notationView.style = ORMusicNotationViewStyleBlackWhite;
+
+    		expect(notationView).to.haveValidSnapshot();
+		});
+
+		it (@"Initial music view controller looks corrects", ^{
+    		id contoller = [[ORMusicViewController alloc] initWithFrame:CGRectMake(0, 0, 80, 80)];
+    		controller.view.frame = [UIScreen mainScreen].bounds;
+
+    		expect(controller).to.haveValidSnapshot();
+		});
+
+		SpecEnd
+		
+### 7.7 Xcode快照插件：Snapshots
+### 7.8 FBSnapshotTestCase测试开源例子
+
+* [ARTiledImageView](https://github.com/dblock/ARTiledImageView)
+* [NAMapKit](https://github.com/neilang/NAMapKit/)
+* [ORStackView](https://github.com/orta/ORStackView/)
+* [ARCollectionViewMasonryLayout](https://github.com/AshFurrow/ARCollectionViewMasonryLayout)
