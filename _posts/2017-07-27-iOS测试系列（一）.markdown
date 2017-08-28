@@ -35,9 +35,11 @@ iOS开发（或者MacOS、tvOS、watchOS等）中，单元测试有多种方式�
 ## 文章链接
 
 * [iOS测试系列（二）：XCTest的使用]()
-* [iOS测试系列（三）：GHUnit的使用]()
-* [iOS测试系列（四）：OCMock的使用]()
+* [iOS测试系列（三）：OCMock的使用]()
+* [iOS测试系列（四）：Specta，Expecta，Kiwi的使用]()
 * [iOS测试系列（五）：KIF界面测试工具的使用]() 
+* [iOS测试系列（六）：UnitTest, TDD, BDD]() 
+* [iOS测试系列（附录一）：objc.io测试系列笔记]() 
 	
 ## 参考资料
 
@@ -52,7 +54,7 @@ iOS开发（或者MacOS、tvOS、watchOS等）中，单元测试有多种方式�
 	* [测试专题](https://www.objc.io/issues/15-testing/)
 
 * raywenderlich
-	* [Unit Testing Tutorial](https://www.raywenderlich.com/?p=3716)
+	* [Unit Testing Tutorial(文章比较老)](https://www.raywenderlich.com/?p=3716)
 
 	* [KIF（界面测试）](https://www.raywenderlich.com/61419/ios-ui-testing-with-kif)
 
