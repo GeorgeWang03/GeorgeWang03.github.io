@@ -18,12 +18,22 @@ iOS开发（或者MacOS、tvOS、watchOS等）中，单元测试有多种方式�
 	* **XCTest**：XCTest是Xcode自带的单元测试工具，其前身是OCUnit，随着Xcode的发展，XCTest已经越来越完善，功能也越强大
 
 * 第三方框架
-	* **GHUnit**：GHUnit是GitHub上著名的开源测试框架，可视化、开源、扩展等功能，让其相比XCTest更加强大（现在的XCTest也很完善了）
-	* **OCMock**：
+	* **GHUnit**：GHUnit是GitHub上著名的开源测试框架，可视化、开源、扩展等功能，让其相比XCTest更加强大（现在的XCTest也很完善了，不过GHUnit比较老，现在已经停止维护，不建议使用）
+	* **OCMock**：OCMock也是Github上的著名开源测试框架，用于Mock、Stub，为测试提供数据作假功能
+	
 
-以上三种就是比较主流的测试Xcode单元测试途径，其他的，还有一些其他测试工具、测试方式，如：
+以上三种就是比较主流的测试Xcode单元测试途径，还有一些BDD行为测试框架：
+	
+* **Specta**：GitHub上轻量级的BDD DSL测试框架
+* **Expecta**：与Specta同个作者，是一个功能强大的匹配框架
+* **Kiwi**：Kiwi是重量级的，集OCMock、Specta、Expecta所拥有的功能与一身的BDD DSL测试框架
 
-* **KIF**：界面测试工具
+其他的，还有一些其他测试工具、测试方式，如：
+
+* **Nocilla**：强大的HTTP模拟测试工具
+* **OHHTTPStubs**：也是HTTP模拟测试工具
+* **TUDelorean**：基于Objective-C的时间模拟测试工具
+* **KIF**：集成／界面测试工具，其它的还有Frank、Calabash等
 * **GitHub + Jenkins + TestFlight**：自动化测试
 * **Monkey Test**：随机测试
 	
@@ -38,7 +48,7 @@ iOS开发（或者MacOS、tvOS、watchOS等）中，单元测试有多种方式�
 * [iOS测试系列（三）：OCMock的使用]()
 * [iOS测试系列（四）：Specta，Expecta，Kiwi的使用]()
 * [iOS测试系列（五）：KIF界面测试工具的使用]() 
-* [iOS测试系列（六）：UnitTest, TDD, BDD]() 
+* [iOS测试系列（六）：UnitTest, TDD, BDD以及界面测试]() 
 * [iOS测试系列（附录一）：objc.io测试系列笔记]() 
 	
 ## 参考资料
