@@ -104,3 +104,57 @@ id_rsa应该是第2步时你秘钥的命名
 
 **总而言之**，github的账户切换时，要注意对配置信息和钥匙串的更换，否则会出现Permission ... denied to ... 的错误。
 		
+		
+## 多用户同时用（多个密钥对）
+
+有时我们想在同一台电脑同时使用多个GitHub账号，并且同时对不同账号下的仓库操作，这时候如果只有一个密钥对是不行的，也许你可以通过`ssh-add rsa_name`来切换不同的证书，但这样也未免太麻烦了。
+
+要想免除切换过程，关键点就在于`.ssh/config`文件（不同电脑该文件存放位置可能不同，本人是存放在`~/.ssh/config`），config文件中可以做如下映射关系：
+
+		Host github.com
+		HostName github.com
+		User git
+		IdentityFile ~/.ssh/id_rsa
+		
+其中，**Host**是我们对主机的命名，**HostName**是真实主机，**IdentityFile**是我们在前面创建的私钥文件，这几行信息的意思就是，Host名为github.com的仓库操作使用`~/.ssh/id_rsa`密钥进行加密操作，那么，假如我们需要新增另一个账号的密钥对（假设名称为`id_rsa_anohter`），那么我们的配置信息如下：
+
+
+		Host anotherAccount
+		HostName github.com
+		User git
+		IdentityFile ~/.ssh/id_rsa_another
+		
+上面信息表示，Host名为anotherAccount的仓库操作使用`~/.ssh/id_rsa_another`密钥进行加密操作。
+于是我们现在有两个密钥对，两个Host，config文件内容如下：
+
+		Host github.com
+		HostName github.com
+		User git
+		IdentityFile ~/.ssh/id_rsa
+		
+		Host anotherAccount
+		HostName github.com
+		User git
+		IdentityFile ~/.ssh/id_rsa_another
+		
+也就是两个配置信息放一起。
+
+有了配置信息，那么git是在什么阶段来通过config文件读取映射关系的呢？
+其实就是根据仓库地址，比如我们一般仓库地址是`git@github.com:UserName/Repository.git`，其中`git@`后面的github.com就是我们上面定义的Host名字，如果我们使用的是新增账号下的仓库，那么这个时候仓库地址就要改成`git@anotherAccount:UserName/Repository.git`，替换如下：
+
+`cd`到工程目录，然后：
+
+		$ git remote set-url origin git@anotherAccount:UserName/Repository.git
+		
+虽然仓库中前缀发生变化，但由于config文件中，真实的HostName还是github.com，所以最终还是会找到正确的仓库地址。
+
+如果还出现`Permission ... denied to ...`的问题，那就是证书没加到ssh代理上，执行一下操作：
+
+	$ ssh-add ~/.ssh/id_rsa_another
+	$ ssh -T git@anotherAccount
+	
+如果出现
+
+		Hi username! You've successfully authenticated, but GitHub does not provide shell access.
+		
+那么新增的用户密钥对就能够使用了。
